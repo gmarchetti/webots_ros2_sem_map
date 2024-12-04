@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<robot name="robot">
+    <webots>
+        <plugin type="webots_ros2_sem_map.robot_controller.RobotController" />
+    </webots>
+</robot>

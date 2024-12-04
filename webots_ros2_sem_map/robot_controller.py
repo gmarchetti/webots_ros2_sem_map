@@ -18,9 +18,9 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose
 
-sys.path.append(
-    os.path.join("C:", "Program Files", "Webots", "lib", "controller", "python")
-)  # !Change the path to the Webots python controller library
+# sys.path.append(
+#     os.path.join("C:", "Program Files", "Webots", "lib", "controller", "python")
+# )  # !Change the path to the Webots python controller library
 
 from controller import Robot
 from controller.motor import Motor
@@ -173,7 +173,55 @@ def run_robot(robot: Robot) -> None:
             + f"Image: {image.shape} | "
             + f"Ranges: {ranges.shape}"
         )
+class RobotController:
+    def init(self, webots_node, properties):
+        self.__node = rclpy.create_node('robot')
+        # get the time step of the current world.
+        time_step = 32
+        max_speed = 6.28
 
+        # Motors
+        self.__l1_motor = robot.getDevice("motor_l1")
+        self.__r1_motor = robot.getDevice("motor_r1")
+
+        self.__l1_motor.setPosition(float("inf"))
+        self.__r1_motor.setPosition(float("inf"))
+
+        self.__l1_motor.setVelocity(0.0)
+        self.__r1_motor.setVelocity(0.0)
+
+        # Sensors
+        self.__lidar = robot.getDevice("lidar_sensor")
+        self.__camera = robot.getDevice("camera")
+        self.__imu = robot.getDevice("imu")
+        self.__gps = robot.getDevice("gps")
+
+        self.__camera.enable(time_step)
+        self.__imu.enable(time_step)
+        self.__gps.enable(time_step)
+        self.__lidar.enable(time_step)
+        self.__lidar.enablePointCloud()
+
+        # Keyboard Control
+
+        command_thread = command_thread_factory(l1_motor, r1_motor, max_speed)
+        thread = threading.Thread(target=command_thread)
+        thread.start()
+    
+    def step(self):
+        # rclpy.spin_once(self.__node, timeout_sec=0)
+
+        robot_orientation = self.__imu.getRollPitchYaw()
+        robot_position = self.__gps.getValues()
+        image = parse_image(self.__camera)
+        ranges = parse_lidar(self.__lidar)
+
+        print(
+            f"Orientation: {robot_orientation} | "
+            + f"Position: {robot_position} | "
+            + f"Image: {image.shape} | "
+            + f"Ranges: {ranges.shape}"
+        )
 
 class ROS2Subscriber(Node):
     def __init__(self):
@@ -201,9 +249,9 @@ class ROS2Publisher(Node):
         self.get_logger().info('Publishing: "%s"' % msg.data)
 
 
-if __name__ == "__main__":
-    robot = Robot()
-    run_robot(robot)
+# if __name__ == "__main__":
+#     robot = Robot()
+#     run_robot(robot)
 
     # Uncomment the following code to run ROS2 nodes in parallel with the Webots controller.
     # rclpy.init(args=None)
