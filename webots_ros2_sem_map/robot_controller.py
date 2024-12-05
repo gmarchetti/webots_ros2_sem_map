@@ -16,6 +16,7 @@ import os
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
 
 # sys.path.append(
@@ -27,6 +28,8 @@ from controller.motor import Motor
 from controller.camera import Camera
 from controller.lidar import Lidar
 
+HALF_DISTANCE_BETWEEN_WHEELS = 0.45
+WHEEL_RADIUS = 0.25
 
 def parse_image(camera: Camera) -> np.ndarray:
     """Parses an image from a camera and returns it as a NumPy array.
@@ -74,115 +77,21 @@ def parse_lidar(lidar: Lidar) -> np.ndarray:
         print("An error occurred while reshaping the range image data.")
         traceback.print_exc()
 
-
-def command_thread_factory(
-    l1_motor: Motor, r1_motor: Motor, max_speed: float
-) -> Callable[[], None]:
-    """Creates a thread that controls the robot's movement based on keyboard input.
-
-    :param l1_motor: The left motor of the robot.
-    :type l1_motor: Motor
-    :param r1_motor: The right motor of the robot.
-    :type r1_motor: Motor
-    :param max_speed: The maximum speed of the motors.
-    :type max_speed: float
-    :param break_command: A flag indicating whether the thread should break.
-    :type break_command: bool
-    :return: A thread that controls the robot's movement.
-    :rtype: threading.Thread
-    """
-
-    def command_thread():
-        """Controls the robot's movement based on keyboard input."""
-        while True:
-            try:
-                angular_speed_reduction = 5
-                linear_speed_reduction = 2
-                if keyboard.is_pressed("w"):
-                    l1_motor.setVelocity(-max_speed / linear_speed_reduction)
-                    r1_motor.setVelocity(-max_speed / linear_speed_reduction)
-                elif keyboard.is_pressed("s"):
-                    l1_motor.setVelocity(max_speed / linear_speed_reduction)
-                    r1_motor.setVelocity(max_speed / linear_speed_reduction)
-                elif keyboard.is_pressed("a"):
-                    l1_motor.setVelocity(max_speed / angular_speed_reduction)
-                    r1_motor.setVelocity(-max_speed / angular_speed_reduction)
-                elif keyboard.is_pressed("d"):
-                    l1_motor.setVelocity(-max_speed / angular_speed_reduction)
-                    r1_motor.setVelocity(max_speed / angular_speed_reduction)
-                elif keyboard.is_pressed("q"):
-                    break
-                else:
-                    l1_motor.setVelocity(0.0)
-                    r1_motor.setVelocity(0.0)
-            except Exception:
-                # traceback.print_exc()
-                pass
-
-            time.sleep(1 / 30)
-
-    return command_thread
-
-
-def run_robot(robot: Robot) -> None:
-    """Controls the robot's movement based on keyboard input.
-    :param robot: The robot instance.
-    :type robot: Robot
-    """
-    # get the time step of the current world.
-    time_step = 32
-    max_speed = 6.28
-
-    # Motors
-    l1_motor = robot.getDevice("motor_l1")
-    r1_motor = robot.getDevice("motor_r1")
-
-    l1_motor.setPosition(float("inf"))
-    r1_motor.setPosition(float("inf"))
-
-    l1_motor.setVelocity(0.0)
-    r1_motor.setVelocity(0.0)
-
-    # Sensors
-    lidar = robot.getDevice("lidar_sensor")
-    camera = robot.getDevice("camera")
-    imu = robot.getDevice("imu")
-    gps = robot.getDevice("gps")
-
-    camera.enable(time_step)
-    imu.enable(time_step)
-    gps.enable(time_step)
-    lidar.enable(time_step)
-    lidar.enablePointCloud()
-
-    # Keyboard Control
-
-    command_thread = command_thread_factory(l1_motor, r1_motor, max_speed)
-    thread = threading.Thread(target=command_thread)
-    thread.start()
-
-    while robot.step(time_step) != -1:
-        robot_orientation = imu.getRollPitchYaw()
-        robot_position = gps.getValues()
-        image = parse_image(camera)
-        ranges = parse_lidar(lidar)
-
-        print(
-            f"Orientation: {robot_orientation} | "
-            + f"Position: {robot_position} | "
-            + f"Image: {image.shape} | "
-            + f"Ranges: {ranges.shape}"
-        )
 class RobotController:
     def init(self, webots_node, properties):
+        rclpy.init(args=None)
+        
+        self.__target_twist = Twist()
+
         self.__node = rclpy.create_node('robot')
+        self.__robot = webots_node.robot
         # get the time step of the current world.
         time_step = 32
         max_speed = 6.28
 
         # Motors
-        self.__l1_motor = robot.getDevice("motor_l1")
-        self.__r1_motor = robot.getDevice("motor_r1")
+        self.__l1_motor = self.__robot.getDevice("motor_l1")
+        self.__r1_motor = self.__robot.getDevice("motor_r1")
 
         self.__l1_motor.setPosition(float("inf"))
         self.__r1_motor.setPosition(float("inf"))
@@ -191,10 +100,10 @@ class RobotController:
         self.__r1_motor.setVelocity(0.0)
 
         # Sensors
-        self.__lidar = robot.getDevice("lidar_sensor")
-        self.__camera = robot.getDevice("camera")
-        self.__imu = robot.getDevice("imu")
-        self.__gps = robot.getDevice("gps")
+        self.__lidar = self.__robot.getDevice("lidar_sensor")
+        self.__camera = self.__robot.getDevice("camera")
+        self.__imu = self.__robot.getDevice("imu")
+        self.__gps = self.__robot.getDevice("gps")
 
         self.__camera.enable(time_step)
         self.__imu.enable(time_step)
@@ -202,26 +111,37 @@ class RobotController:
         self.__lidar.enable(time_step)
         self.__lidar.enablePointCloud()
 
-        # Keyboard Control
-
-        command_thread = command_thread_factory(l1_motor, r1_motor, max_speed)
-        thread = threading.Thread(target=command_thread)
-        thread.start()
+        # Ros2 TeleOp Control
+        self.__node.create_subscription(Twist, 'cmd_vel', self.__cmd_vel_callback, 1)
+     
+    def __cmd_vel_callback(self, twist):
+        self.__target_twist = twist
     
-    def step(self):
-        # rclpy.spin_once(self.__node, timeout_sec=0)
+    def adjust_target_speed(self):
+        forward_speed = self.__target_twist.linear.x
+        angular_speed = self.__target_twist.angular.z
 
+        command_motor_left = (forward_speed - angular_speed * HALF_DISTANCE_BETWEEN_WHEELS) / WHEEL_RADIUS
+        command_motor_right = (forward_speed + angular_speed * HALF_DISTANCE_BETWEEN_WHEELS) / WHEEL_RADIUS
+
+        self.__l1_motor.setVelocity(command_motor_left)
+        self.__r1_motor.setVelocity(command_motor_right)
+
+    def step(self):
+        rclpy.spin_once(self.__node, timeout_sec=0)
+
+        self.adjust_target_speed()
         robot_orientation = self.__imu.getRollPitchYaw()
         robot_position = self.__gps.getValues()
         image = parse_image(self.__camera)
         ranges = parse_lidar(self.__lidar)
 
-        print(
-            f"Orientation: {robot_orientation} | "
-            + f"Position: {robot_position} | "
-            + f"Image: {image.shape} | "
-            + f"Ranges: {ranges.shape}"
-        )
+        # print(
+        #     f"Orientation: {robot_orientation} | "
+        #     + f"Position: {robot_position} | "
+        #     + f"Image: {image.shape} | "
+        #     + f"Ranges: {ranges.shape}"
+        # )
 
 class ROS2Subscriber(Node):
     def __init__(self):
