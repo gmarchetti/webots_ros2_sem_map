@@ -23,9 +23,15 @@ def generate_launch_description():
         ]
     )
 
+    image_recognition = Node(
+        package='webots_ros2_sem_map',
+        executable='img_recognition'
+    )
+
     return LaunchDescription([
         webots,
         robot_controller,
+        image_recognition,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit(
                 target_action=webots,
