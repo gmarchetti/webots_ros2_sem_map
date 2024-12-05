@@ -21,11 +21,13 @@ class ImgDetection(Node):
         self.create_subscription(String, 'parse_img', self.__parse_image_callback, 1)
 
     def __parse_image_callback(self, message):
-        self.parse_img_from_array("")
+        self.parse_img_from_array(message)
 
-    def parse_img_from_array(self, img_bytes):
-        url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-        image = Image.open(requests.get(url, stream=True).raw)
+    def parse_img_from_array(self, message):
+        img_location = message.data
+        self.get_logger().info(f"Parsing image from {img_location}")
+        # url = "http://images.cocodataset.org/val2017/000000039769.jpg"
+        image = Image.open(img_location)
         
         inputs = self.__processor(images=image, return_tensors="pt")
         outputs = self.__model(**inputs)

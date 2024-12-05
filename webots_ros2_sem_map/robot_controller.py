@@ -16,12 +16,14 @@ import os
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+from std_msgs.msg import Bool
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
 from controller import Robot
 from controller.motor import Motor
 from controller.camera import Camera
 from controller.lidar import Lidar
+from PIL import Image
 
 from webots_ros2_sem_map.img_object_detection_node import ImgDetection
 
@@ -53,7 +55,6 @@ def parse_image(img_detector: ImgDetection, camera: Camera) -> np.ndarray:
         print("An error occurred while reshaping the image data.")
         traceback.print_exc()
 
-
 def parse_lidar(lidar: Lidar) -> np.ndarray:
     """Parses a range image from a lidar and returns it as a NumPy array.
 
@@ -77,9 +78,25 @@ def parse_lidar(lidar: Lidar) -> np.ndarray:
         traceback.print_exc()
 
 class RobotController:
+    def __save_img_callback(self, message):
+        try:
+            cam_image = self.__camera.getImage()
+            width = self.__camera.getWidth()
+            height = self.__camera.getHeight()
+            image_array = np.frombuffer(cam_image, dtype=np.uint8)
+            img = Image.fromarray(image_array.reshape((height, width, 4))[:, :, :3])
+            img.save("screenshot.jpg")
+            
+            self.__node.get_logger().info(f"Image saved to {os.path.abspath(os.path.join(os.curdir, 'screenshot.jpg'))}")
+        except AttributeError:
+            print("An error occurred due to missing methods in the camera object.")
+            traceback.print_exc()
+        except ValueError:
+            print("An error occurred while reshaping the image data.")
+            traceback.print_exc()
+
     def init(self, webots_node, properties):
         rclpy.init(args=None)
-        
         self.__target_twist = Twist()
 
         self.__node = rclpy.create_node('robot')
@@ -112,8 +129,7 @@ class RobotController:
 
         # Ros2 TeleOp Control
         self.__node.create_subscription(Twist, 'cmd_vel', self.__cmd_vel_callback, 1)
-
-        self.__imager = ImgDetection()
+        self.__node.create_subscription(Bool, 'save_img', self.__save_img_callback, 1)
      
     def __cmd_vel_callback(self, twist):
         self.__target_twist = twist
@@ -144,45 +160,3 @@ class RobotController:
         #     + f"Image: {image.shape} | "
         #     + f"Ranges: {ranges.shape}"
         # )
-
-class ROS2Subscriber(Node):
-    def __init__(self):
-        super().__init__("ros2_subscriber")
-        self.subscription = self.create_subscription(
-            String, "webots", self.listener_callback, 10
-        )
-
-    def listener_callback(self, msg):
-        self.get_logger().info(f'Received: "{msg.data}"')
-
-
-class ROS2Publisher(Node):
-    def __init__(self):
-        super().__init__("ros2_publisher")
-        self.publisher_ = self.create_publisher(String, "chatter", 10)
-        timer_period = 0.5
-        self.timer = self.create_timer(timer_period, self.timer_callback)
-
-    def timer_callback(self):
-        msg = String()
-        msg.data = "Hello Webots"
-
-        self.publisher_.publish(msg)
-        self.get_logger().info('Publishing: "%s"' % msg.data)
-
-
-# if __name__ == "__main__":
-#     robot = Robot()
-#     run_robot(robot)
-
-    # Uncomment the following code to run ROS2 nodes in parallel with the Webots controller.
-    # rclpy.init(args=None)
-
-    # ros2_publisher = ROS2Publisher()
-    # ros2_subscriber = ROS2Subscriber()
-
-    # try:
-    #     rclpy.spin(ros2_publisher)
-    # except KeyboardInterrupt:
-    #     ros2_publisher.destroy_node()
-    #     rclpy.shutdown()
