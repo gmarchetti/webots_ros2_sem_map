@@ -18,20 +18,17 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
-
-# sys.path.append(
-#     os.path.join("C:", "Program Files", "Webots", "lib", "controller", "python")
-# )  # !Change the path to the Webots python controller library
-
 from controller import Robot
 from controller.motor import Motor
 from controller.camera import Camera
 from controller.lidar import Lidar
 
+from webots_ros2_sem_map.img_object_detection_node import ImgDetection
+
 HALF_DISTANCE_BETWEEN_WHEELS = 0.45
 WHEEL_RADIUS = 0.25
 
-def parse_image(camera: Camera) -> np.ndarray:
+def parse_image(img_detector: ImgDetection, camera: Camera) -> np.ndarray:
     """Parses an image from a camera and returns it as a NumPy array.
 
     :param camera: Object representing the camera with methods getImage(), getWidth(), and getHeight().
@@ -46,6 +43,8 @@ def parse_image(camera: Camera) -> np.ndarray:
         width = camera.getWidth()
         height = camera.getHeight()
         image_array = np.frombuffer(image, dtype=np.uint8)
+        img_detector.parse_img_from_array(image_array.reshape((height, width, 4))[:, :, :3])
+
         return image_array.reshape((height, width, 4))
     except AttributeError:
         print("An error occurred due to missing methods in the camera object.")
@@ -113,6 +112,8 @@ class RobotController:
 
         # Ros2 TeleOp Control
         self.__node.create_subscription(Twist, 'cmd_vel', self.__cmd_vel_callback, 1)
+
+        self.__imager = ImgDetection()
      
     def __cmd_vel_callback(self, twist):
         self.__target_twist = twist
@@ -131,10 +132,11 @@ class RobotController:
         rclpy.spin_once(self.__node, timeout_sec=0)
 
         self.adjust_target_speed()
-        robot_orientation = self.__imu.getRollPitchYaw()
-        robot_position = self.__gps.getValues()
-        image = parse_image(self.__camera)
-        ranges = parse_lidar(self.__lidar)
+        
+        # robot_orientation = self.__imu.getRollPitchYaw()
+        # robot_position = self.__gps.getValues()
+        # image = parse_image(self.__imager, self.__camera)
+        # ranges = parse_lidar(self.__lidar)
 
         # print(
         #     f"Orientation: {robot_orientation} | "
