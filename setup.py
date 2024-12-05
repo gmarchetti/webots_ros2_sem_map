@@ -43,7 +43,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            # 'robot = webots_ros2_sem_map.controller.main_controller:main'
+            'img_recognition = webots_ros2_sem_map.img_object_detection_node:main'
         ],
     },
 )
