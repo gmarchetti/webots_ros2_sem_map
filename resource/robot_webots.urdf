@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<robot name="C:/Users/guilh/Desktop/robot_webots.urdf" xmlns:xacro="http://ros.org/wiki/xacro">
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.4" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.45" length="1.8"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.4" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.45" length="1.8"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="gps">
+  </link>
+  <joint name="base_link_gps_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="gps"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="camera">
+  </link>
+  <joint name="base_link_camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera"/>
+    <origin xyz="0 0.4 0.9" rpy="-1.570796 0 0.009204"/>
+  </joint>
+  <link name="imu">
+  </link>
+  <joint name="base_link_imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu"/>
+    <origin xyz="0 0 0.2" rpy="0 0 0"/>
+  </joint>
+  <link name="lidar_sensor">
+  </link>
+  <joint name="base_link_lidar_sensor_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="lidar_sensor"/>
+    <origin xyz="0 0.4 1.15" rpy="0 0 1.57"/>
+  </joint>
+  <joint name="motor_r1" type="continuous">
+    <parent link="base_link"/>
+    <child link="motor_r1_solid"/>
+    <axis xyz="-0.009204 0 0.999958"/>
+    <limit effort="10" velocity="10"/>
+    <origin xyz="0.5 0 -0.3" rpy="1.57549 0.471558 1.581128"/>
+  </joint>
+  <link name="motor_r1_solid">
+    <visual>
+      <geometry>
+        <cylinder radius="0.25" length="0.1"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.25" length="0.1"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="motor_l1" type="continuous">
+    <parent link="base_link"/>
+    <child link="motor_l1_solid"/>
+    <axis xyz="-0.009204 0 0.999958"/>
+    <limit effort="10" velocity="10"/>
+    <origin xyz="-0.5 0 -0.35" rpy="-1.575491 0.471657 -1.581128"/>
+  </joint>
+  <link name="motor_l1_solid">
+    <visual>
+      <geometry>
+        <cylinder radius="0.25" length="0.1"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.25" length="0.1"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="front support">
+  </link>
+  <joint name="base_link_front support_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="front support"/>
+    <origin xyz="0 0.5 -0.477" rpy="0 0 0"/>
+  </joint>
+  <link name="appearance">
+  </link>
+  <joint name="front support_appearance_joint" type="fixed">
+    <parent link="front support"/>
+    <child link="appearance"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="rear support">
+  </link>
+  <joint name="base_link_rear support_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="rear support"/>
+    <origin xyz="0 -0.5 -0.477" rpy="0 0 0"/>
+  </joint>
+  <link name="appearance_0">
+  </link>
+  <joint name="rear support_appearance_0_joint" type="fixed">
+    <parent link="rear support"/>
+    <child link="appearance_0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <webots>
+        <plugin type="webots_ros2_sem_map.robot_controller.RobotController" />
+  </webots>
+</robot>
