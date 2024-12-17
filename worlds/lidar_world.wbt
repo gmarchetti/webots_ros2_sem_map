@@ -162,7 +162,7 @@ Robot {
       horizontalResolution 360
       fieldOfView 3.14
       verticalFieldOfView 1.57
-      numberOfLayers 180
+      numberOfLayers 1
       near 1e-04
       minRange 1e-04
       maxRange 10
