@@ -39,11 +39,20 @@ def generate_launch_description():
         executable='img_recognition'
     )
 
+    robot_localization_node = Node(
+       package='robot_localization',
+       executable='ekf_node',
+       name='ekf_filter_node',
+       output='screen',
+       parameters=[os.path.join(package_dir, 'resource/ekf.yaml'), {'use_sim_time': True}]
+)
+
     return LaunchDescription([
         webots,
         robot_controller,
         image_recognition,
         robot_state_publisher,
+        robot_localization_node,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit(
                 target_action=webots,

@@ -12,21 +12,25 @@ import keyboard
 import time
 import sys
 import os
-
+from tf2_ros import TransformBroadcaster, TransformStamped
 import rclpy
+from math import sin, cos, pi
+
 from rclpy.node import Node
+import rclpy.time
 from std_msgs.msg import String
 from std_msgs.msg import Bool
 from geometry_msgs.msg import Twist
-from geometry_msgs.msg import Pose
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
 from controller import Robot
 from controller.motor import Motor
 from controller.camera import Camera
 from controller.lidar import Lidar
+
 from PIL import Image
 
 from webots_ros2_sem_map.img_object_detection_node import ImgDetection
-
 HALF_DISTANCE_BETWEEN_WHEELS = 0.45
 WHEEL_RADIUS = 0.25
 
@@ -77,7 +81,65 @@ def parse_lidar(lidar: Lidar) -> np.ndarray:
         print("An error occurred while reshaping the range image data.")
         traceback.print_exc()
 
+def euler_to_quaternion(roll, pitch, yaw):
+    qx = sin(roll/2) * cos(pitch/2) * cos(yaw/2) - cos(roll/2) * sin(pitch/2) * sin(yaw/2)
+    qy = cos(roll/2) * sin(pitch/2) * cos(yaw/2) + sin(roll/2) * cos(pitch/2) * sin(yaw/2)
+    qz = cos(roll/2) * cos(pitch/2) * sin(yaw/2) - sin(roll/2) * sin(pitch/2) * cos(yaw/2)
+    qw = cos(roll/2) * cos(pitch/2) * cos(yaw/2) + sin(roll/2) * sin(pitch/2) * sin(yaw/2)
+    return Quaternion(x=qx, y=qy, z=qz, w=qw)
+
 class RobotController:
+    def __publish_odom(self):
+        current_time = self.__node.get_clock().now()
+
+        # compute odometry in a typical way given the velocities of the robot
+        # dt = (current_time - self.__last_time).to_sec()
+        delta_x = 0.0
+        delta_y = 0.0
+        delta_th = 0.0
+
+        x = delta_x
+        y = delta_y
+        th = delta_th
+
+        # since all odometry is 6DOF we'll need a quaternion created from yaw
+        odom_quat = euler_to_quaternion(0, 0, 0)
+        # odom_trans = TransformStamped()
+        # odom_trans.header.frame_id = 'base_link'
+        # odom_trans.child_frame_id = 'odom'
+        # odom_trans.header.stamp = current_time.to_msg()
+        # odom_trans.transform.translation.x = x
+        # odom_trans.transform.translation.y = y
+        # odom_trans.transform.translation.z = 0.0
+        # odom_trans.transform.rotation = euler_to_quaternion(0, 0, 0)
+        # # first, we'll publish the transform over tf
+        # self.__odom_broadcaster.sendTransform(
+        #     odom_trans
+        # )
+
+        # next, we'll publish the odometry message over ROS
+        odom = Odometry()
+        # odom.header.stamp = current_time
+        odom.header.frame_id = "odom"
+
+        # set the position
+        pose = Pose()
+        point = Point()
+        point.x = point.y = point.z = 0.0
+        pose.position = point
+        pose.orientation = odom_quat
+        odom.pose.pose = pose
+    
+        # odom.pose.
+
+        # set the velocity
+        odom.child_frame_id = "base_link"
+        odom.twist.twist = Twist()
+
+            # publish the message
+        self.__odom_pub.publish(odom)
+        self.__last_time = current_time
+
     def __save_img_callback(self, message):
         try:
             cam_image = self.__camera.getImage()
@@ -97,10 +159,13 @@ class RobotController:
 
     def init(self, webots_node, properties):
         rclpy.init(args=None)
+        
         self.__target_twist = Twist()
 
         self.__node = rclpy.create_node('robot')
         self.__robot = webots_node.robot
+
+        self.__last_time = self.__robot.getTime()
         # get the time step of the current world.
         time_step = 32
         max_speed = 6.28
@@ -130,6 +195,11 @@ class RobotController:
         # Ros2 TeleOp Control
         self.__node.create_subscription(Twist, 'cmd_vel', self.__cmd_vel_callback, 1)
         self.__node.create_subscription(Bool, 'save_img', self.__save_img_callback, 1)
+
+        # self.__iteration_reset_publisher = self.__node.create_publisher(Bool, "iteration_reset", 1)
+        self.__odom_pub = self.__node.create_publisher(Odometry, "demo/odom", 1)
+        self.__odom_broadcaster = TransformBroadcaster(self.__node)
+        print(self.__odom_broadcaster)
      
     def __cmd_vel_callback(self, twist):
         self.__target_twist = twist
@@ -148,7 +218,7 @@ class RobotController:
         rclpy.spin_once(self.__node, timeout_sec=0)
 
         self.adjust_target_speed()
-        
+        self.__publish_odom()
         # robot_orientation = self.__imu.getRollPitchYaw()
         # robot_position = self.__gps.getValues()
         # image = parse_image(self.__imager, self.__camera)
