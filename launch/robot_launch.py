@@ -52,7 +52,7 @@ def generate_launch_description():
        name='ekf_filter_node',
        output='screen',
        parameters=[os.path.join(package_dir, 'resource/ekf.yaml'), {'use_sim_time': True}]
-)
+    )
 
     return LaunchDescription([
         webots,
