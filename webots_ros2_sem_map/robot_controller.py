@@ -85,6 +85,9 @@ def euler_to_quaternion(roll, pitch, yaw):
     qw = cos(roll/2) * cos(pitch/2) * cos(yaw/2) + sin(roll/2) * sin(pitch/2) * sin(yaw/2)
     return Quaternion(x=qx, y=qy, z=qz, w=qw)
 
+def swap_cols(arr, frm, to):
+    arr[:,[frm, to]] = arr[:,[to, frm]]
+
 class RobotController:
         
     def __gps_to_odom(self, message : PointStamped):
@@ -123,10 +126,12 @@ class RobotController:
             cam_image = self.__camera.getImage()
             width = self.__camera.getWidth()
             height = self.__camera.getHeight()
-            self.__camera.saveImage("screenshot.jpg", 100)
-            # image_array = np.frombuffer(cam_image, dtype=np.uint8)
-            # img = Image.fromarray(image_array.reshape((height, width, 4))[:, :, :3])
-            # img.save("screenshot.jpg")
+
+            np_image_array = np.frombuffer(cam_image, dtype=np.uint8)
+            bgr_array = np_image_array.reshape((height, width, 4))[:, :, :3]
+            rgb_array = bgr_array[:,:,::-1]                        
+            img = Image.fromarray(rgb_array)
+            img.save("screenshot.jpg")
             
             self.__node.get_logger().info(f"Image saved to {os.path.abspath(os.path.join(os.curdir, 'screenshot.jpg'))}")
         except AttributeError:
