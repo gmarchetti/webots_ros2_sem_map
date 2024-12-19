@@ -45,8 +45,8 @@ def parse_image(img_detector: ImgDetection, camera: Camera) -> np.ndarray:
         image = camera.getImage()
         width = camera.getWidth()
         height = camera.getHeight()
-        image_array = np.frombuffer(image, dtype=np.uint8)
-        img_detector.parse_img_from_array(image_array.reshape((height, width, 4))[:, :, :3])
+        image_array = np.frombuffer(image, dtype=np.uint16)
+        img_detector.parse_img_from_array(image_array.reshape((height, width, 4)))
 
         return image_array.reshape((height, width, 4))
     except AttributeError:
@@ -123,9 +123,10 @@ class RobotController:
             cam_image = self.__camera.getImage()
             width = self.__camera.getWidth()
             height = self.__camera.getHeight()
-            image_array = np.frombuffer(cam_image, dtype=np.uint8)
-            img = Image.fromarray(image_array.reshape((height, width, 4))[:, :, :3])
-            img.save("screenshot.jpg")
+            self.__camera.saveImage("screenshot.jpg", 100)
+            # image_array = np.frombuffer(cam_image, dtype=np.uint8)
+            # img = Image.fromarray(image_array.reshape((height, width, 4))[:, :, :3])
+            # img.save("screenshot.jpg")
             
             self.__node.get_logger().info(f"Image saved to {os.path.abspath(os.path.join(os.curdir, 'screenshot.jpg'))}")
         except AttributeError:
