@@ -8,11 +8,11 @@ from typing import Callable
 import numpy as np
 import traceback
 import os
-from tf2_ros import TransformBroadcaster, TransformStamped
 import rclpy
-from math import sin, cos, pi
-
 import rclpy.time
+
+from tf2_ros import TransformBroadcaster, TransformStamped
+from math import sin, cos, pi
 from std_msgs.msg import String
 from std_msgs.msg import Bool
 from nav_msgs.msg import Odometry
@@ -25,18 +25,11 @@ from controller.lidar import Lidar
 
 from PIL import Image
 
-from webots_ros2_sem_map.img_object_detection_node import ImgDetection
+from .img_object_detection import ImgDetection
 
 import logging
 HALF_DISTANCE_BETWEEN_WHEELS = 0.45
 WHEEL_RADIUS = 0.25
-
-def euler_to_quaternion(roll, pitch, yaw):
-    qx = sin(roll/2) * cos(pitch/2) * cos(yaw/2) - cos(roll/2) * sin(pitch/2) * sin(yaw/2)
-    qy = cos(roll/2) * sin(pitch/2) * cos(yaw/2) + sin(roll/2) * cos(pitch/2) * sin(yaw/2)
-    qz = cos(roll/2) * cos(pitch/2) * sin(yaw/2) - sin(roll/2) * sin(pitch/2) * cos(yaw/2)
-    qw = cos(roll/2) * cos(pitch/2) * cos(yaw/2) + sin(roll/2) * sin(pitch/2) * sin(yaw/2)
-    return Quaternion(x=qx, y=qy, z=qz, w=qw)
 
 def swap_cols(arr, frm, to):
     arr[:,[frm, to]] = arr[:,[to, frm]]
@@ -78,28 +71,43 @@ class RobotController:
         odom.pose.pose = pose
         
         # publish the message
-        self.__odom_pub.publish(odom)
+        self.__odom_pub.publish(odom)    
 
+    def __parse_current_camera(self, message):
+        try:
+            img = self.__get_camera_array_as_image()
+            self.__logger.info(f"Read img from camera")
+            self.__img_parser.parse_img(img)
+        except AttributeError:
+            self.__logger.error("An error occurred due to missing methods in the camera object.")
+            traceback.print_exc()
+        except ValueError:
+            self.__logger.error("An error occurred while reshaping the image data.")
+            traceback.print_exc()
 
     def __save_img_callback(self, message):
         try:
-            cam_image = self.__camera.getImage()
-            width = self.__camera.getWidth()
-            height = self.__camera.getHeight()
-
-            np_image_array = np.frombuffer(cam_image, dtype=np.uint8)
-            bgr_array = np_image_array.reshape((height, width, 4))[:, :, :3]
-            rgb_array = bgr_array[:,:,::-1]                        
-            img = Image.fromarray(rgb_array)
-            img.save("screenshot.jpg")
-            
-            self.__node.get_logger().info(f"Image saved to {os.path.abspath(os.path.join(os.curdir, 'screenshot.jpg'))}")
+            img = self.__get_camera_array_as_image()
+            img.save("screenshot.jpg")            
+            self.__logger.info(f"Image saved to {os.path.abspath(os.path.join(os.curdir, 'screenshot.jpg'))}")
         except AttributeError:
-            print("An error occurred due to missing methods in the camera object.")
+            self.__logger.error("An error occurred due to missing methods in the camera object.")
             traceback.print_exc()
         except ValueError:
-            print("An error occurred while reshaping the image data.")
+            self.__logger.error("An error occurred while reshaping the image data.")
             traceback.print_exc()
+
+    def __get_camera_array_as_image(self) -> Image:
+        cam_image = self.__camera.getImage()
+        width = self.__camera.getWidth()
+        height = self.__camera.getHeight()
+
+        np_image_array = np.frombuffer(cam_image, dtype=np.uint8)
+        bgr_array = np_image_array.reshape((height, width, 4))[:, :, :3]
+        rgb_array = bgr_array[:,:,::-1]                        
+        img = Image.fromarray(rgb_array)
+
+        return img
 
     def init(self, webots_node, properties):
         rclpy.init(args=None)
@@ -107,15 +115,15 @@ class RobotController:
         self.__logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.DEBUG)
         
+        self.__img_parser = ImgDetection()
+
         self.__target_twist = Twist()
 
         self.__node = rclpy.create_node('robot')
         self.__robot = webots_node.robot
 
-        self.__last_time = self.__robot.getTime()
         # get the time step of the current world.
         time_step = 32
-        max_speed = 6.28
 
         # Motors
         self.__l1_motor = self.__robot.getDevice("motor_l1")
@@ -142,6 +150,7 @@ class RobotController:
         # Ros2 TeleOp Control
         self.__node.create_subscription(Twist, 'cmd_vel', self.__cmd_vel_callback, 1)
         self.__node.create_subscription(Bool, 'save_img', self.__save_img_callback, 1)
+        self.__node.create_subscription(Bool, 'parse_camera', self.__parse_current_camera, 1)
         self.__node.create_subscription(PointStamped, 'robot/gps', self.__gps_to_odom, 1)
 
         # self.__iteration_reset_publisher = self.__node.create_publisher(Bool, "iteration_reset", 1)
@@ -164,17 +173,5 @@ class RobotController:
 
     def step(self):
         rclpy.spin_once(self.__node, timeout_sec=0)
-
         self.adjust_target_speed()
 
-        # robot_orientation = self.__imu.getRollPitchYaw()
-        # robot_position = self.__gps.getValues()
-        # image = parse_image(self.__imager, self.__camera)
-        # ranges = parse_lidar(self.__lidar)
-
-        # print(
-        #     f"Orientation: {robot_orientation} | "
-        #     + f"Position: {robot_position} | "
-        #     + f"Image: {image.shape} | "
-        #     + f"Ranges: {ranges.shape}"
-        # )

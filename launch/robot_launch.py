@@ -41,15 +41,9 @@ def generate_launch_description():
         parameters=[{'robot_description': Command(['xacro ', robot_description_path])}] # add other parameters here if required
     )
 
-    image_recognition = Node(
-        package='webots_ros2_sem_map',
-        executable='img_recognition'
-    )
-
     return LaunchDescription([
         webots,
         robot_controller,
-        image_recognition,
         robot_state_publisher,
         joint_state_publisher_node,
         launch.actions.RegisterEventHandler(
