@@ -15,9 +15,9 @@ from math import sin, cos, pi
 import rclpy.time
 from std_msgs.msg import String
 from std_msgs.msg import Bool
-from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3, PointStamped
+from sensor_msgs.msg import Imu
+from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3, PointStamped, Twist
 from controller import Robot
 from controller.motor import Motor
 from controller.camera import Camera
@@ -30,53 +30,6 @@ from webots_ros2_sem_map.img_object_detection_node import ImgDetection
 import logging
 HALF_DISTANCE_BETWEEN_WHEELS = 0.45
 WHEEL_RADIUS = 0.25
-
-def parse_image(img_detector: ImgDetection, camera: Camera) -> np.ndarray:
-    """Parses an image from a camera and returns it as a NumPy array.
-
-    :param camera: Object representing the camera with methods getImage(), getWidth(), and getHeight().
-    :type camera: Camera
-    :return: Parsed image data reshaped to (height, width, 4).
-    :rtype: numpy.ndarray
-    :raises AttributeError: If the camera object does not have required methods.
-    :raises ValueError: If the image data cannot be reshaped correctly.
-    """
-    try:
-        image = camera.getImage()
-        width = camera.getWidth()
-        height = camera.getHeight()
-        image_array = np.frombuffer(image, dtype=np.uint16)
-        img_detector.parse_img_from_array(image_array.reshape((height, width, 4)))
-
-        return image_array.reshape((height, width, 4))
-    except AttributeError:
-        print("An error occurred due to missing methods in the camera object.")
-        traceback.print_exc()
-    except ValueError:
-        print("An error occurred while reshaping the image data.")
-        traceback.print_exc()
-
-def parse_lidar(lidar: Lidar) -> np.ndarray:
-    """Parses a range image from a lidar and returns it as a NumPy array.
-
-    :param lidar: Object representing the lidar with methods getRangeImage(), getHorizontalResolution(), and getNumberOfLayers().
-    :type lidar: Lidar
-    :return: Parsed range data reshaped to (height, width).
-    :rtype: numpy.ndarray
-    :raises AttributeError: If the lidar object does not have required methods.
-    :raises ValueError: If the range image data cannot be reshaped correctly.
-    """
-    try:
-        range_data = np.array(lidar.getRangeImage())
-        width = lidar.getHorizontalResolution()
-        height = lidar.getNumberOfLayers()
-        return range_data.reshape((height, width))
-    except AttributeError:
-        print("An error occurred due to missing methods in the lidar object.")
-        traceback.print_exc()
-    except ValueError:
-        print("An error occurred while reshaping the range image data.")
-        traceback.print_exc()
 
 def euler_to_quaternion(roll, pitch, yaw):
     qx = sin(roll/2) * cos(pitch/2) * cos(yaw/2) - cos(roll/2) * sin(pitch/2) * sin(yaw/2)
@@ -105,6 +58,12 @@ class RobotController:
         tf_odom.transform.translation.x = gps_point.x
         tf_odom.transform.translation.y = gps_point.y
         tf_odom.transform.translation.z = gps_point.z
+        
+        imu_reading = self.__imu.getQuaternion()
+        tf_odom.transform.rotation.x = imu_reading[0]
+        tf_odom.transform.rotation.y = imu_reading[1]
+        tf_odom.transform.rotation.z = imu_reading[2]
+        tf_odom.transform.rotation.w = imu_reading[3]
 
         self.__odom_tf_broadcaster.sendTransform(tf_odom)
 
@@ -117,9 +76,10 @@ class RobotController:
         pose = Pose()
         pose.position = gps_point
         odom.pose.pose = pose
-
+        
         # publish the message
         self.__odom_pub.publish(odom)
+
 
     def __save_img_callback(self, message):
         try:
@@ -186,6 +146,7 @@ class RobotController:
 
         # self.__iteration_reset_publisher = self.__node.create_publisher(Bool, "iteration_reset", 1)
         self.__odom_pub = self.__node.create_publisher(Odometry, "robot/odom", 1)
+        self.__imu_pub = self.__node.create_publisher(Imu, "robot/imu", 1)
         self.__odom_tf_broadcaster = TransformBroadcaster(self.__node)
      
     def __cmd_vel_callback(self, twist):
