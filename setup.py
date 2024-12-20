@@ -6,7 +6,6 @@ data_files = []
 data_files.append(('share/ament_index/resource_index/packages', ['resource/' + package_name]))
 data_files.append(('share/' + package_name + '/launch', ['launch/robot_launch.py']))
 data_files.append(('share/' + package_name + '/resource', ['resource/robot_webots.urdf']))
-data_files.append(('share/' + package_name + '/resource', ['resource/ekf.yaml']))
 data_files.append(('share/' + package_name + '/worlds', ['worlds/lidar_world.wbt']))
 data_files.append(('share/' + package_name + '/worlds', ['worlds/house.dae']))
 data_files.append(('share/' + package_name + '/worlds', ['worlds/map.dae']))
