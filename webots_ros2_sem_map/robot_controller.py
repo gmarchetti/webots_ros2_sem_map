@@ -128,16 +128,12 @@ class RobotController:
 
         m_data = message.data
         
-        # m_data_color = np.array([prob_to_color(point) for point in m_data], dtype=np.uint8)
-        # m_data_color = np.zeros((512,512,3), 'uint8')
-        
-        self.__logger.info(f"Received map data: {m_height}h x {m_width}w {len(m_data)}items")
+        m_data_color = np.array([prob_to_color(point) for point in m_data], dtype=np.uint8)
+        self.__logger.info(f"Received map data: {m_height}h x {m_width}w {len(m_data)} items")
 
-        # m_img = self.__display.imageNew(m_data_color, Display.RGB, width=m_width, height=m_height)
-        # self.__display.imagePaste(m_img, 0, 0)
-        # self.__display.imageDelete(m_img)
-
-        
+        ir = self.__display.imageNew(bytes(m_data_color), Display.BGRA, m_width, m_height)
+        self.__display.imagePaste(ir, 0, 0, False)
+        self.__display.imageDelete(ir)
 
     def init(self, webots_node, properties):
         rclpy.init(args=None)
