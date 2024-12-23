@@ -37,13 +37,17 @@ def swap_cols(arr, frm, to):
 def prob_to_color(prob: int):
     #RGB
     if prob == 0:
-        return 0xACB5AE #172, 181, 174
+        # return 0xACB5AE 
+        return [172, 181, 174]
     elif prob == 100:
-        return 0x000000 #0, 0, 0
+        # return 0x000000
+        return [0, 0, 0]
     elif prob == -1:
-        return 0x838A84 #131, 138, 132
+        # return 0x838A84
+        return [131, 138, 132]
     else:
-        return 0xED671F #237, 103, 31
+        # return 0xED671F 
+        return [237, 103, 31]
 
 class RobotController:
         
@@ -128,10 +132,11 @@ class RobotController:
 
         m_data = message.data
         
-        m_data_color = np.array([prob_to_color(point) for point in m_data], dtype=np.uint8)
-        self.__logger.info(f"Received map data: {m_height}h x {m_width}w {len(m_data)} items")
+        m_color_matrix = np.array([prob_to_color(point) for point in m_data], dtype=np.uint8)
+        m_color_array = np.reshape(m_color_matrix, m_height*m_width*3)
 
-        ir = self.__display.imageNew(bytes(m_data_color), Display.BGRA, m_width, m_height)
+        self.__logger.info(f"Received map data: {m_height}h x {m_width}w {len(m_data)} items")
+        ir = self.__display.imageNew(bytes(m_color_array), Display.RGB, m_width, m_height)
         self.__display.imagePaste(ir, 0, 0, False)
         self.__display.imageDelete(ir)
 
