@@ -15,10 +15,10 @@ from tf2_ros import TransformBroadcaster, TransformStamped
 from math import sin, cos, pi
 from std_msgs.msg import String
 from std_msgs.msg import Bool
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, OccupancyGrid
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3, PointStamped, Twist
-from controller import Robot
+from controller import Robot, Display
 from controller.motor import Motor
 from controller.camera import Camera
 from controller.lidar import Lidar
@@ -33,6 +33,17 @@ WHEEL_RADIUS = 0.25
 
 def swap_cols(arr, frm, to):
     arr[:,[frm, to]] = arr[:,[to, frm]]
+
+def prob_to_color(prob: int):
+    #RGB
+    if prob == 0:
+        return 0xACB5AE #172, 181, 174
+    elif prob == 100:
+        return 0x000000 #0, 0, 0
+    elif prob == -1:
+        return 0x838A84 #131, 138, 132
+    else:
+        return 0xED671F #237, 103, 31
 
 class RobotController:
         
@@ -101,19 +112,38 @@ class RobotController:
         cam_image = self.__camera.getImage()
         width = self.__camera.getWidth()
         height = self.__camera.getHeight()
-
+        
         np_image_array = np.frombuffer(cam_image, dtype=np.uint8)
         bgr_array = np_image_array.reshape((height, width, 4))[:, :, :3]
         rgb_array = bgr_array[:,:,::-1]                        
         img = Image.fromarray(rgb_array)
 
         return img
+    
+    def __read_map_message(self, message):
+        # self.__logger.info(message.data)
+        m_info = message.info
+        m_height = m_info.height
+        m_width = m_info.width
+
+        m_data = message.data
+        
+        # m_data_color = np.array([prob_to_color(point) for point in m_data], dtype=np.uint8)
+        # m_data_color = np.zeros((512,512,3), 'uint8')
+        
+        self.__logger.info(f"Received map data: {m_height}h x {m_width}w {len(m_data)}items")
+
+        # m_img = self.__display.imageNew(m_data_color, Display.RGB, width=m_width, height=m_height)
+        # self.__display.imagePaste(m_img, 0, 0)
+        # self.__display.imageDelete(m_img)
+
+        
 
     def init(self, webots_node, properties):
         rclpy.init(args=None)
         
         self.__logger = logging.getLogger(__name__)
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.INFO)
         
         self.__img_parser = ImgDetection()
 
@@ -136,10 +166,11 @@ class RobotController:
         self.__r1_motor.setVelocity(0.0)
 
         # Sensors
-        self.__lidar = self.__robot.getDevice("lidar_sensor")
+        self.__lidar = self.__robot.getDevice("lidar_sensor") 
         self.__camera = self.__robot.getDevice("camera")
         self.__imu = self.__robot.getDevice("imu")
         self.__gps = self.__robot.getDevice("gps")
+        self.__display = self.__robot.getDevice("display")
 
         self.__camera.enable(time_step)
         self.__imu.enable(time_step)
@@ -152,8 +183,8 @@ class RobotController:
         self.__node.create_subscription(Bool, 'save_img', self.__save_img_callback, 1)
         self.__node.create_subscription(Bool, 'parse_camera', self.__parse_current_camera, 1)
         self.__node.create_subscription(PointStamped, 'robot/gps', self.__gps_to_odom, 1)
+        self.__node.create_subscription(OccupancyGrid, '/map', self.__read_map_message, 1)
 
-        # self.__iteration_reset_publisher = self.__node.create_publisher(Bool, "iteration_reset", 1)
         self.__odom_pub = self.__node.create_publisher(Odometry, "robot/odom", 1)
         self.__imu_pub = self.__node.create_publisher(Imu, "robot/imu", 1)
         self.__odom_tf_broadcaster = TransformBroadcaster(self.__node)

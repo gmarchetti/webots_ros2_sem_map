@@ -9,8 +9,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/project
 WorldInfo {
 }
 Viewpoint {
-  orientation 0.44537686003505816 -0.27466545875940385 -0.8521727162434846 4.109329787244084
-  position 15.560016015696808 -27.264378704182043 30.8978601796606
+  orientation 0.41630845860470056 -0.22614065477357656 -0.8806518446882152 4.033988049920755
+  position 22.760058022875228 -31.015997675607153 35.630134409166885
   followType "None"
 }
 TexturedBackground {
@@ -27,6 +27,10 @@ Robot {
   translation 5.40629 -8.58868 0.17
   rotation 0 0 -1 -1.831005307179586
   children [
+    Display {
+      width 640
+      height 640
+    }
     DEF BodyShapeWithTransform Pose {
       children [
         DEF Body Shape {
@@ -155,13 +159,13 @@ Robot {
       translation 0 0.4 0.55
       rotation 0 0 1 1.57
       name "lidar_sensor"
-      horizontalResolution 360
+      horizontalResolution 720
       fieldOfView 3.14
       verticalFieldOfView 1.57
       numberOfLayers 1
       near 0.0001
       minRange 0.0001
-      maxRange 10
+      maxRange 20
     }
     InertialUnit {
       translation 0 0 0.2
