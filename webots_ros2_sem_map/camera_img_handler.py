@@ -1,15 +1,41 @@
 import torch
 import logging
+import os
+import numpy as np
+from controller import Camera
 from transformers import DetrImageProcessor, DetrForObjectDetection
 from PIL import Image
 
+class CameraImgHandler():
 
-class ImgDetection():    
-    def __init__(self):
+    def __get_camera_array_as_image(self) -> Image:
+        cam_image = self.__camera.getImage()
+        width = self.__camera.getWidth()
+        height = self.__camera.getHeight()
+        
+        np_image_array = np.frombuffer(cam_image, dtype=np.uint8)
+        bgr_array = np_image_array.reshape((height, width, 4))[:, :, :3]
+        rgb_array = bgr_array[:,:,::-1]                        
+        img = Image.fromarray(rgb_array)
+
+        return img
+
+    def __init__(self, camera : Camera):
         # you can specify the revision tag if you don't want the timm dependency
         self.__processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50", revision="no_timm")
         self.__model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50", revision="no_timm")
         self.__logger = logging.getLogger(__name__)
+        self.__camera = camera
+
+    def save_camera_to_file(self):
+        img = self.__get_camera_array_as_image()
+        img.save("screenshot.jpg")            
+        self.__logger.info(f"Image saved to {os.path.abspath(os.path.join(os.curdir, 'screenshot.jpg'))}")
+
+    def parse_current_camera(self):
+        img = self.__get_camera_array_as_image()
+        self.__logger.info(f"Read img from camera")
+        return self.parse_img(img)
 
     def parse_img_from_file(self, file_name : str):
         self.__logger.info(f"Parsing image from {file_name}")

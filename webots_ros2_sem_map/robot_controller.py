@@ -23,9 +23,7 @@ from controller.motor import Motor
 from controller.camera import Camera
 from controller.lidar import Lidar
 
-from PIL import Image
-
-from .img_object_detection import ImgDetection
+from .camera_img_handler import CameraImgHandler
 
 import logging
 HALF_DISTANCE_BETWEEN_WHEELS = 0.45
@@ -90,9 +88,7 @@ class RobotController:
 
     def __parse_current_camera(self, message):
         try:
-            img = self.__get_camera_array_as_image()
-            self.__logger.info(f"Read img from camera")
-            self.__img_parser.parse_img(img)
+            self.__img_handler.parse_current_camera()
         except AttributeError:
             self.__logger.error("An error occurred due to missing methods in the camera object.")
             traceback.print_exc()
@@ -102,27 +98,13 @@ class RobotController:
 
     def __save_img_callback(self, message):
         try:
-            img = self.__get_camera_array_as_image()
-            img.save("screenshot.jpg")            
-            self.__logger.info(f"Image saved to {os.path.abspath(os.path.join(os.curdir, 'screenshot.jpg'))}")
+            self.__img_handler.save_camera_to_file()
         except AttributeError:
             self.__logger.error("An error occurred due to missing methods in the camera object.")
             traceback.print_exc()
         except ValueError:
             self.__logger.error("An error occurred while reshaping the image data.")
             traceback.print_exc()
-
-    def __get_camera_array_as_image(self) -> Image:
-        cam_image = self.__camera.getImage()
-        width = self.__camera.getWidth()
-        height = self.__camera.getHeight()
-        
-        np_image_array = np.frombuffer(cam_image, dtype=np.uint8)
-        bgr_array = np_image_array.reshape((height, width, 4))[:, :, :3]
-        rgb_array = bgr_array[:,:,::-1]                        
-        img = Image.fromarray(rgb_array)
-
-        return img
     
     def __read_map_message(self, message):
         # self.__logger.info(message.data)
@@ -146,7 +128,6 @@ class RobotController:
         self.__logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.INFO)
         
-        self.__img_parser = ImgDetection()
 
         self.__target_twist = Twist()
 
@@ -168,7 +149,7 @@ class RobotController:
 
         # Sensors
         self.__lidar = self.__robot.getDevice("lidar_sensor") 
-        self.__camera = self.__robot.getDevice("camera")
+        self.__camera = self.__robot.getDevice("camera")        
         self.__imu = self.__robot.getDevice("imu")
         self.__gps = self.__robot.getDevice("gps")
         self.__display = self.__robot.getDevice("display")
@@ -178,6 +159,8 @@ class RobotController:
         self.__gps.enable(time_step)
         self.__lidar.enable(time_step)
         self.__lidar.enablePointCloud()
+
+        self.__img_handler = CameraImgHandler(self.__camera)
 
         # Ros2 TeleOp Control
         self.__node.create_subscription(Twist, 'cmd_vel', self.__cmd_vel_callback, 1)
