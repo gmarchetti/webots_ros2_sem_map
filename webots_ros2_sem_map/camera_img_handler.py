@@ -32,10 +32,33 @@ class CameraImgHandler():
         img.save("screenshot.jpg")            
         self.__logger.info(f"Image saved to {os.path.abspath(os.path.join(os.curdir, 'screenshot.jpg'))}")
 
+    def __item_box_to_rad(self, item_box):
+        cam_width = self.__camera.getWidth()
+        cam_fov = self.__camera.getFov()
+
+        x_min, x_max = int(item_box[0]), int(item_box[2])
+
+        rel_x_min = float(x_min)/cam_width
+        rel_x_max = float(x_max)/cam_width
+
+        angle_min = (rel_x_min * cam_fov) - (cam_fov/2)
+        angle_max = (rel_x_max * cam_fov) - (cam_fov/2)
+
+        return angle_min, angle_max
+        
     def parse_current_camera(self):
         img = self.__get_camera_array_as_image()
-        self.__logger.info(f"Read img from camera")
-        return self.parse_img(img)
+        
+
+        self.__logger.info(f"Read img from camera")        
+
+        items_in_sight = self.parse_img(img)
+
+        for item in items_in_sight:
+            item_box = item["box"]
+            angle_min, angle_max = self.__item_box_to_rad(item_box)
+            self.__logger.info(f"{item["label"]} position in rads: {angle_min} - {angle_max}")
+            
 
     def parse_img_from_file(self, file_name : str):
         self.__logger.info(f"Parsing image from {file_name}")
@@ -51,10 +74,27 @@ class CameraImgHandler():
         target_sizes = torch.tensor([image.size[::-1]])
         results = self.__processor.post_process_object_detection(outputs, target_sizes=target_sizes, threshold=0.2)[0]
 
+        items = []
+
+        # Box in COCO format top_left_x, top_left_y,bottom_right_x, bottom_right_y
         for score, label, box in zip(results["scores"], results["labels"], results["boxes"]):
             box = [round(i, 2) for i in box.tolist()]
+
+            item = {
+                "label" :  self.__model.config.id2label[label.item()],
+                "confidence" : round(score.item(), 3),
+                "box" : box
+            }
+
+            items.append(item)
+        
+        self.__logger.info(f"Possibly found {len(items)} items")
+
+        for found_item in items:
             self.__logger.info(
-                    f"Detected {self.__model.config.id2label[label.item()]} with confidence "
-                    f"{round(score.item(), 3)} at location {box}"
-                )
+                f"Detected {found_item["label"]} with confidence {found_item["confidence"]} at location {found_item["box"]}"
+            )
+        
         self.__logger.info("Finished parsing image")
+
+        return items
