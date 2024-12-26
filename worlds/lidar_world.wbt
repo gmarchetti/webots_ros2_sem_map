@@ -127,7 +127,7 @@ Robot {
     DEF wheel_joint HingeJoint {
       jointParameters HingeJointParameters {
         position -5.183968885302215
-        anchor 0.5 0 -0.3
+        anchor 0.5 0 -0.35
       }
       device [
         RotationalMotor {
