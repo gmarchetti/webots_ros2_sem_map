@@ -87,9 +87,8 @@ class RobotController:
         self.__odom_pub.publish(odom)    
 
     def __cam_angle_to_index(self, angle, num_points):
-        fov = self.__camera.getFov()
 
-        a = num_points/fov
+        a = num_points/pi
         b = 360
 
         index = int((a*angle) + b)
