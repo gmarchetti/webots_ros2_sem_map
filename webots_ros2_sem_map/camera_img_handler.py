@@ -49,15 +49,17 @@ class CameraImgHandler():
     def parse_current_camera(self):
         img = self.__get_camera_array_as_image()
         
-
         self.__logger.info(f"Read img from camera")        
-
+        self.__logger.info(f"Camera fov: {self.__camera.getFov()}")
         items_in_sight = self.parse_img(img)
 
         for item in items_in_sight:
             item_box = item["box"]
             angle_min, angle_max = self.__item_box_to_rad(item_box)
+            item["angle_pos"] = [angle_min, angle_max]
             self.__logger.info(f"{item["label"]} position in rads: {angle_min} - {angle_max}")
+        
+        return items_in_sight
             
 
     def parse_img_from_file(self, file_name : str):

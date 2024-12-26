@@ -86,9 +86,35 @@ class RobotController:
         # publish the message
         self.__odom_pub.publish(odom)    
 
+    def __cam_angle_to_index(self, angle, num_points):
+        fov = self.__camera.getFov()
+
+        a = num_points/fov
+        b = 360
+
+        index = int((a*angle) + b)
+        index = max(index, 0)
+        index = min(index, num_points-1)
+        return index
+
     def __parse_current_camera(self, message):
         try:
-            self.__img_handler.parse_current_camera()
+            items_in_sight = self.__img_handler.parse_current_camera()
+            self.__logger.info(f"found these items in camera {items_in_sight}")
+
+            range_data = self.__lidar.getRangeImage()
+            num_range_points = len(range_data)
+            self.__logger.info(f"Lidar has {num_range_points} number of points")
+
+            for item in items_in_sight:
+                min_angle, max_angle = item["angle_pos"][0], item["angle_pos"][1]
+                min_index = self.__cam_angle_to_index(min_angle, num_range_points)
+                max_index = self.__cam_angle_to_index(max_angle, num_range_points)
+
+                self.__logger.info(f"Range data for {item["label"]} is between indexes: {min_index} {max_index}")
+                self.__logger.info(f"{range_data[min_index:max_index]}")
+
+            
         except AttributeError:
             self.__logger.error("An error occurred due to missing methods in the camera object.")
             traceback.print_exc()
@@ -158,7 +184,7 @@ class RobotController:
         self.__imu.enable(time_step)
         self.__gps.enable(time_step)
         self.__lidar.enable(time_step)
-        self.__lidar.enablePointCloud()
+        # self.__lidar.enablePointCloud()
 
         self.__img_handler = CameraImgHandler(self.__camera)
 
