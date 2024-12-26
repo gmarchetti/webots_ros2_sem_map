@@ -9,8 +9,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/project
 WorldInfo {
 }
 Viewpoint {
-  orientation 0.41630845860470056 -0.22614065477357656 -0.8806518446882152 4.033988049920755
-  position 22.760058022875228 -31.015997675607153 35.630134409166885
+  orientation 0.41990203188963515 -0.5265546641408799 -0.7392039429592085 4.63661390014148
+  position 1.7916527568167453 -19.422669412750565 18.71213458539498
   followType "None"
 }
 TexturedBackground {
@@ -24,7 +24,7 @@ TexturedBackgroundLight {
   texture "entrance_hall"
 }
 Robot {
-  translation 5.40629 -8.58868 0.17
+  translation 5.40629 -8.58868 0.21
   rotation 0 0 -1 -1.831005307179586
   children [
     Display {
@@ -135,7 +135,7 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.5 0 -0.3
+        translation 0.5 2.42861286636753e-17 -0.3
         rotation -0.45965146961597936 -0.7573083176496329 -0.4639015396596058 4.429068615578198
         children [
           DEF shape_wheel Shape {

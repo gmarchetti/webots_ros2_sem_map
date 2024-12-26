@@ -47,6 +47,11 @@ def prob_to_color(prob: int):
         # return 0xED671F 
         return [237, 103, 31]
 
+def pol2cart(rho, phi):
+    x = rho * np.cos(phi)
+    y = rho * np.sin(phi)
+    return(x, y)
+
 class RobotController:
         
     def __gps_to_odom(self, message : PointStamped):
@@ -103,7 +108,10 @@ class RobotController:
 
             range_data = self.__lidar.getRangeImage()
             num_range_points = len(range_data)
+            
             self.__logger.info(f"Lidar has {num_range_points} number of points")
+
+            angle_between_points = pi/num_range_points
 
             for item in items_in_sight:
                 min_angle, max_angle = item["angle_pos"][0], item["angle_pos"][1]
@@ -112,6 +120,18 @@ class RobotController:
 
                 self.__logger.info(f"Range data for {item["label"]} is between indexes: {min_index} {max_index}")
                 self.__logger.info(f"{range_data[min_index:max_index]}")
+
+                item_range_data = range_data[min_index:max_index]
+
+                angle_point = min_angle
+                item["coords"] = []
+                
+                for range_point in item_range_data:
+                    coord = [pol2cart(range_point, angle_point)]
+                    item["coords"].append(coord)
+                    angle_point += angle_between_points
+                
+                self.__logger.info(f"{item["label"]} coordinates are: {item["coords"]}")
 
             
         except AttributeError:
