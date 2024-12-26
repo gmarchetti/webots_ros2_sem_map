@@ -26,11 +26,10 @@ from controller.lidar import Lidar
 from .camera_img_handler import CameraImgHandler
 
 import logging
+
 HALF_DISTANCE_BETWEEN_WHEELS = 0.45
 WHEEL_RADIUS = 0.25
-
-def swap_cols(arr, frm, to):
-    arr[:,[frm, to]] = arr[:,[to, frm]]
+OBJ_MAP_SIZE = 160
 
 def prob_to_color(prob: int):
     #RGB
@@ -46,6 +45,15 @@ def prob_to_color(prob: int):
     else:
         # return 0xED671F 
         return [237, 103, 31]
+    
+def item_idx_to_color(idx):
+    #RGB
+    colors = [
+        [255, 255, 255],
+        [0, 0, 0],
+        [255, 255, 0]
+    ]
+    return colors[idx]
 
 def pol2cart(rho, phi):
     x = rho * np.cos(phi)
@@ -119,7 +127,6 @@ class RobotController:
                 max_index = self.__cam_angle_to_index(max_angle, num_range_points)
 
                 self.__logger.info(f"Range data for {item["label"]} is between indexes: {min_index} {max_index}")
-                self.__logger.info(f"{range_data[min_index:max_index]}")
 
                 item_range_data = range_data[min_index:max_index]
 
@@ -130,9 +137,19 @@ class RobotController:
                     coord = [pol2cart(range_point, angle_point)]
                     item["coords"].append(coord)
                     angle_point += angle_between_points
-                
-                self.__logger.info(f"{item["label"]} coordinates are: {item["coords"]}")
+                    grid_coord = np.digitize(coord, self.__grid_bins)[0]
+                    self.__logger.debug(f"Marking {grid_coord} as {item["label"]}")
+                    self.__obj_map[grid_coord[0]][grid_coord[1]] = 1
 
+                objs_array = np.reshape(self.__obj_map, OBJ_MAP_SIZE * OBJ_MAP_SIZE)
+                
+
+                rgb_color_matrix = np.array([item_idx_to_color(idx) for idx in objs_array], dtype="uint8")
+                rgb_color_array = np.reshape(rgb_color_matrix, 3 * OBJ_MAP_SIZE * OBJ_MAP_SIZE)
+                # self.__logger.info(bytes(rgb_color_array))
+                ir = self.__obj_display.imageNew(bytes(rgb_color_array), Display.RGB, OBJ_MAP_SIZE, OBJ_MAP_SIZE)
+                self.__obj_display.imagePaste(ir, 0, 0, False)
+                self.__obj_display.imageDelete(ir)
             
         except AttributeError:
             self.__logger.error("An error occurred due to missing methods in the camera object.")
@@ -198,6 +215,7 @@ class RobotController:
         self.__imu = self.__robot.getDevice("imu")
         self.__gps = self.__robot.getDevice("gps")
         self.__display = self.__robot.getDevice("display")
+        self.__obj_display = self.__robot.getDevice("obj_display")
 
         self.__camera.enable(time_step)
         self.__imu.enable(time_step)
@@ -217,7 +235,10 @@ class RobotController:
         self.__odom_pub = self.__node.create_publisher(Odometry, "robot/odom", 1)
         self.__imu_pub = self.__node.create_publisher(Imu, "robot/imu", 1)
         self.__odom_tf_broadcaster = TransformBroadcaster(self.__node)
-     
+
+        self.__grid_bins = [idx/100 for idx in range(0, OBJ_MAP_SIZE*50, 5)]
+        self.__obj_map = np.zeros([OBJ_MAP_SIZE, OBJ_MAP_SIZE], dtype="int")
+
     def __cmd_vel_callback(self, twist):
         self.__target_twist = twist
     

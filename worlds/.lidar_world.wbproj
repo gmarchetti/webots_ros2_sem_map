@@ -8,7 +8,8 @@ centralWidgetVisible: 1
 projectionMode: PERSPECTIVE
 renderingMode: PLAIN
 orthographicViewHeight: 22.5079
-textFiles: 0 "protos/TurtleBot3Burger.proto"
+textFiles: -1
 globalOptionalRendering: LidarPointClouds::LidarRaysPaths::CameraFrustums
 renderingDevicePerspectives: robot:camera;1;0.143555;0.00435184;0.016247
 renderingDevicePerspectives: robot:display;1;0.434696;0.0215894;0.351376
+renderingDevicePerspectives: robot:obj_display;1;1;0;0
