@@ -40,6 +40,13 @@ class MapInfo():
         self.__x_pos_bins = [ self.__current_map_x_origin + i * self.__current_map_resolution for i in range(self.__current_map_width - 1 )]
         self.__y_pos_bins = [ self.__current_map_y_origin + i * self.__current_map_resolution for i in range(self.__current_map_height - 1)]
 
+        # for x in range(self.__current_map_width):
+        #     for y in range(self.__current_map_height):
+        #         if self.__current_map[x][y] > 0:
+        #             converted_x = x*self.__current_map_resolution + self.__current_map_x_origin
+        #             converted_y = y*self.__current_map_resolution + self.__current_map_y_origin
+        #             self.__logger.info(f"Position {converted_x} {converted_y} is occupied")
+
     def __digitize_xy(self, x, y):
         return numpy.digitize(x, self.__x_pos_bins), numpy.digitize(y, self.__y_pos_bins)
 
@@ -83,15 +90,15 @@ class MapInfo():
             for position in item_positions:
                 item_x, item_y = self.__digitize_xy(position[0], position[1])
                 if obj_map[item_x][item_y] == 0:
-                    self.__logger.info(f"Marking pos {item_x} {item_y} as occupied")
+                    self.__logger.debug(f"Marking pos {item_x} {item_y} as occupied")
                     obj_map[item_x][item_y] = 1
                 else:
-                    self.__logger.info(f"Marking pos {item_x} {item_y} as duplicate")
+                    self.__logger.debug(f"Marking pos {item_x} {item_y} as duplicate")
                     item_pos_to_remove.append(position)
 
             # remove overlapping positions
             for overlapping_position in item_pos_to_remove:
-                self.__logger.info(f"Removing {overlapping_position} as a duplicate")
+                self.__logger.debug(f"Removing {overlapping_position} as a duplicate")
                 self.__known_items[item_label].remove(overlapping_position)
 
         obj_matrix = numpy.zeros((self.__current_map_height, self.__current_map_width, 3), dtype="uint8")

@@ -50,9 +50,20 @@ def prob_to_color(prob: int):
 
 def pol2cart(rho, phi, current_position=[0,0,0], current_orientation=[0,0,0]):
 
-    x = (rho * np.cos(phi + current_orientation[2])) + current_position[0]
-    y = (rho * np.sin(phi + current_orientation[2])) + current_position[1]
-    return(x, y)
+    rel_x = rho * np.cos(phi)
+    rel_y = rho * np.sin(phi)
+
+    x_sign, y_sign = 1, 1
+    
+    if np.cos(current_orientation[2]) < 0:
+        x_sign = -1
+
+    if np.sin(current_orientation[2]) < 0:
+        y_sign = -1
+
+    abs_x =  current_position[0] + (x_sign *  rel_x)
+    abs_y = current_position[1] + (y_sign * rel_y)
+    return abs_x, abs_y
 
 class RobotController:
         
@@ -131,11 +142,14 @@ class RobotController:
                 item_range_data = range_data[min_index:max_index]
                 angle_point = min_angle                                
                 
+                # Still have to add distance from Lidar to center of robot
                 for range_point in item_range_data:
+                    self.__logger.debug(f"Relative Polar Coordinates for {item["label"]}: {range_point} {angle_point}")
+                    
                     item_x, item_y = pol2cart(range_point, angle_point, current_pose, current_orientation)
                     self.__logger.debug(f"Position estimation for {item["label"]} is {item_x} {item_y}")
-                    angle_point += angle_between_points
                     
+                    angle_point += angle_between_points
                     occupied_prob = self.__map_info.get_prob_is_xy_occupied(item_x, item_y)
                     
                     if occupied_prob > 0:
@@ -186,7 +200,7 @@ class RobotController:
         rclpy.init(args=None)
         
         self.__logger = logging.getLogger(__name__)
-        self.__logger.setLevel(logging.DEBUG)
+        self.__logger.setLevel(logging.INFO)
         self.__target_twist = Twist()
 
         self.__node = rclpy.create_node('robot')
