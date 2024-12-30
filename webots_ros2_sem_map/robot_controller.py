@@ -172,7 +172,7 @@ class RobotController:
 
         self.__map_info.process_new_map_message(message)
 
-        self.__logger.debug(f"Received map data: {m_height}h x {m_width}w {len(m_data)} items")
+        self.__logger.info(f"Received map data: {m_height}h x {m_width}w {len(m_data)} items")
         ir = self.__display.imageNew(bytes(m_color_array), Display.RGB, m_width, m_height)
         self.__display.imagePaste(ir, 0, 0, False)
         self.__display.imageDelete(ir)

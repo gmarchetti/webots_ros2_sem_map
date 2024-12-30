@@ -71,15 +71,16 @@ class MapInfo():
 
             for position in item_positions:
                 item_x, item_y = self.__digitize_xy(position[0], position[1])
-                self.__logger.debug(f"Marking pos {item_x} {item_y} as occupied")
                 if obj_map[item_x][item_y] == 0:
+                    self.__logger.info(f"Marking pos {item_x} {item_y} as occupied")
                     obj_map[item_x][item_y] = 1
                 else:
-                    item_positions.append(position)
+                    self.__logger.info(f"Marking pos {item_x} {item_y} as duplicate")
+                    item_pos_to_remove.append(position)
 
             # remove overlapping positions
             for overlapping_position in item_pos_to_remove:
-                self.__logger.debug(f"Removing {overlapping_position} as a duplicate")
+                self.__logger.info(f"Removing {overlapping_position} as a duplicate")
                 self.__known_items[item_label].remove(overlapping_position)
 
 
