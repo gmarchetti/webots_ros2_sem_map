@@ -23,13 +23,15 @@ from controller.motor import Motor
 from controller.camera import Camera
 from controller.lidar import Lidar
 
+from .map_info import MapInfo
 from .camera_img_handler import CameraImgHandler
 
 import logging
+logging.basicConfig(level=logging.INFO)
 
 HALF_DISTANCE_BETWEEN_WHEELS = 0.45
 WHEEL_RADIUS = 0.25
-OBJ_MAP_SIZE = 160
+OBJ_MAP_SIZE = 270
 
 def prob_to_color(prob: int):
     #RGB
@@ -45,19 +47,11 @@ def prob_to_color(prob: int):
     else:
         # return 0xED671F 
         return [237, 103, 31]
-    
-def item_idx_to_color(idx):
-    #RGB
-    colors = [
-        [255, 255, 255],
-        [0, 0, 0],
-        [255, 255, 0]
-    ]
-    return colors[idx]
 
-def pol2cart(rho, phi):
-    x = rho * np.cos(phi)
-    y = rho * np.sin(phi)
+def pol2cart(rho, phi, current_position=[0,0,0], current_orientation=[0,0,0]):
+
+    x = (rho * np.cos(phi + current_orientation[2])) + current_position[0]
+    y = (rho * np.sin(phi + current_orientation[2])) + current_position[1]
     return(x, y)
 
 class RobotController:
@@ -95,7 +89,7 @@ class RobotController:
         pose = Pose()
         pose.position = gps_point
         odom.pose.pose = pose
-        
+
         # publish the message
         self.__odom_pub.publish(odom)    
 
@@ -121,6 +115,12 @@ class RobotController:
 
             angle_between_points = pi/num_range_points
 
+            current_orientation = self.__imu.getRollPitchYaw()
+            current_pose = self.__gps.getValues()
+
+            self.__logger.info(f"Current orientation: {current_orientation}")
+            self.__logger.info(f"Current Position: {current_pose}")
+            
             for item in items_in_sight:
                 min_angle, max_angle = item["angle_pos"][0], item["angle_pos"][1]
                 min_index = self.__cam_angle_to_index(min_angle, num_range_points)
@@ -129,27 +129,18 @@ class RobotController:
                 self.__logger.info(f"Range data for {item["label"]} is between indexes: {min_index} {max_index}")
 
                 item_range_data = range_data[min_index:max_index]
-
-                angle_point = min_angle
-                item["coords"] = []
+                angle_point = min_angle                                
                 
                 for range_point in item_range_data:
-                    coord = [pol2cart(range_point, angle_point)]
-                    item["coords"].append(coord)
+                    item_x, item_y = pol2cart(range_point, angle_point, current_pose, current_orientation)
+                    
                     angle_point += angle_between_points
-                    grid_coord = np.digitize(coord, self.__grid_bins)[0]
-                    self.__logger.debug(f"Marking {grid_coord} as {item["label"]}")
-                    self.__obj_map[grid_coord[0]][grid_coord[1]] = 1
-
-                objs_array = np.reshape(self.__obj_map, OBJ_MAP_SIZE * OBJ_MAP_SIZE)
-                
-
-                rgb_color_matrix = np.array([item_idx_to_color(idx) for idx in objs_array], dtype="uint8")
-                rgb_color_array = np.reshape(rgb_color_matrix, 3 * OBJ_MAP_SIZE * OBJ_MAP_SIZE)
-                # self.__logger.info(bytes(rgb_color_array))
-                ir = self.__obj_display.imageNew(bytes(rgb_color_array), Display.RGB, OBJ_MAP_SIZE, OBJ_MAP_SIZE)
-                self.__obj_display.imagePaste(ir, 0, 0, False)
-                self.__obj_display.imageDelete(ir)
+                    
+                    occupied_prob = self.__map_info.get_prob_is_xy_occupied(item_x, item_y)
+                    
+                    if occupied_prob > 0:
+                        self.__logger.debug(f"Grid has a {occupied_prob}, marking as {item["label"]}")
+                        # self.__obj_map[grid_coord[0]][grid_coord[1]] = 1
             
         except AttributeError:
             self.__logger.error("An error occurred due to missing methods in the camera object.")
@@ -169,7 +160,7 @@ class RobotController:
             traceback.print_exc()
     
     def __read_map_message(self, message):
-        # self.__logger.info(message.data)
+
         m_info = message.info
         m_height = m_info.height
         m_width = m_info.width
@@ -179,17 +170,22 @@ class RobotController:
         m_color_matrix = np.array([prob_to_color(point) for point in m_data], dtype=np.uint8)
         m_color_array = np.reshape(m_color_matrix, m_height*m_width*3)
 
-        self.__logger.info(f"Received map data: {m_height}h x {m_width}w {len(m_data)} items")
+        self.__map_info.process_new_map_message(message)
+
+        self.__logger.debug(f"Received map data: {m_height}h x {m_width}w {len(m_data)} items")
         ir = self.__display.imageNew(bytes(m_color_array), Display.RGB, m_width, m_height)
         self.__display.imagePaste(ir, 0, 0, False)
         self.__display.imageDelete(ir)
+
+        obj_color_array = self.__map_info.get_obj_map_for_display()
+        ir = self.__obj_display.imageNew(bytes(obj_color_array), Display.RGB, m_width, m_height)
+        self.__obj_display.imagePaste(ir, 0, 0, False)
+        self.__obj_display.imageDelete(ir)
 
     def init(self, webots_node, properties):
         rclpy.init(args=None)
         
         self.__logger = logging.getLogger(__name__)
-        logging.basicConfig(level=logging.INFO)
-        
 
         self.__target_twist = Twist()
 
@@ -236,8 +232,7 @@ class RobotController:
         self.__imu_pub = self.__node.create_publisher(Imu, "robot/imu", 1)
         self.__odom_tf_broadcaster = TransformBroadcaster(self.__node)
 
-        self.__grid_bins = [idx/100 for idx in range(0, OBJ_MAP_SIZE*50, 5)]
-        self.__obj_map = np.zeros([OBJ_MAP_SIZE, OBJ_MAP_SIZE], dtype="int")
+        self.__map_info = MapInfo()
 
     def __cmd_vel_callback(self, twist):
         self.__target_twist = twist
