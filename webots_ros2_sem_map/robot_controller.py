@@ -106,27 +106,27 @@ class RobotController:
     def __parse_current_camera(self, message):
         try:
             items_in_sight = self.__img_handler.parse_current_camera()
-            self.__logger.info(f"found these items in camera {items_in_sight}")
+            self.__logger.debug(f"found these items in camera {items_in_sight}")
 
             range_data = self.__lidar.getRangeImage()
             num_range_points = len(range_data)
             
-            self.__logger.info(f"Lidar has {num_range_points} number of points")
+            self.__logger.debug(f"Lidar has {num_range_points} number of points")
 
             angle_between_points = pi/num_range_points
 
             current_orientation = self.__imu.getRollPitchYaw()
             current_pose = self.__gps.getValues()
 
-            self.__logger.info(f"Current orientation: {current_orientation}")
-            self.__logger.info(f"Current Position: {current_pose}")
+            self.__logger.debug(f"Current orientation: {current_orientation}")
+            self.__logger.debug(f"Current Position: {current_pose}")
             
             for item in items_in_sight:
                 min_angle, max_angle = item["angle_pos"][0], item["angle_pos"][1]
                 min_index = self.__cam_angle_to_index(min_angle, num_range_points)
                 max_index = self.__cam_angle_to_index(max_angle, num_range_points)
 
-                self.__logger.info(f"Range data for {item["label"]} is between indexes: {min_index} {max_index}")
+                self.__logger.debug(f"Range data for {item["label"]} is between indexes: {min_index} {max_index}")
 
                 item_range_data = range_data[min_index:max_index]
                 angle_point = min_angle                                
@@ -140,7 +140,7 @@ class RobotController:
                     
                     if occupied_prob > 0:
                         self.__logger.debug(f"Grid has a {occupied_prob}, marking as {item["label"]}")
-                        # self.__obj_map[grid_coord[0]][grid_coord[1]] = 1
+                        self.__map_info.add_item_position_info(item["label"], item_x, item_y)
             
         except AttributeError:
             self.__logger.error("An error occurred due to missing methods in the camera object.")

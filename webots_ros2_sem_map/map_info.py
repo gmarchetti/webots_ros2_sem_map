@@ -39,30 +39,55 @@ class MapInfo():
         self.__x_pos_bins = [ self.__current_map_x_origin + i * self.__current_map_resolution for i in range(self.__current_map_width - 1 )]
         self.__y_pos_bins = [ self.__current_map_y_origin + i * self.__current_map_resolution for i in range(self.__current_map_height - 1)]
 
+    def __digitize_xy(self, x, y):
+        return numpy.digitize(x, self.__x_pos_bins), numpy.digitize(y, self.__y_pos_bins)
+
     def get_prob_is_xy_occupied(self, x, y):
         if self.__current_map is None:
             return -1
 
-        x_idx = numpy.digitize(x, self.__x_pos_bins)
-        y_idx = numpy.digitize(y, self.__y_pos_bins)
+        x_idx, y_idx = self.__digitize_xy(x, y)
 
         self.__logger.debug(f"Checking if {x} {y} position is occupied -> {x_idx} {y_idx}")
 
         return self.__current_map[x_idx][y_idx]
     
     def add_item_position_info(self, item_label, x, y):
-
+        
+        self.__logger.info(f"Adding {item_label} in {x} {y} to list of known items")
+        
         if item_label in self.__known_items.keys():
-            self.__known_items.append([x, y])
+            self.__known_items[item_label].append([x, y])
         else:
-            self.__known_items = [ [x,y] ]
+            self.__known_items[item_label] = [ [x,y] ]
 
     def get_obj_map_for_display(self):
+        obj_map = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="int")
+
+        for item_label in self.__known_items.keys():
+            item_positions = self.__known_items[item_label]
+            
+            item_pos_to_remove = []
+
+            for position in item_positions:
+                item_x, item_y = self.__digitize_xy(position[0], position[1])
+                self.__logger.debug(f"Marking pos {item_x} {item_y} as occupied")
+                if obj_map[item_x][item_y] == 0:
+                    obj_map[item_x][item_y] = 1
+                else:
+                    item_positions.append(position)
+
+            # remove overlapping positions
+            for overlapping_position in item_pos_to_remove:
+                self.__logger.debug(f"Removing {overlapping_position} as a duplicate")
+                self.__known_items[item_label].remove(overlapping_position)
+
+
         obj_matrix = numpy.zeros((self.__current_map_width, self.__current_map_height, 3), dtype="uint8")
 
         for i in range(self.__current_map_width):
             for j in range (self.__current_map_height):
-                obj_matrix[i][j] = self.__item_idx_to_color(0)
+                obj_matrix[i][j] = self.__item_idx_to_color(obj_map[i][j])
 
         rgb_color_array = numpy.reshape(obj_matrix, 3 * self.__current_map_width * self.__current_map_height)
         return rgb_color_array
