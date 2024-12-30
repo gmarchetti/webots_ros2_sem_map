@@ -2,6 +2,7 @@ import numpy
 import logging
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
+DIGITAL_EPS = 1
 
 class MapInfo():
     
@@ -9,8 +10,8 @@ class MapInfo():
         #RGB
         colors = [
             [255, 255, 255],
-            [0, 0, 0],
-            [255, 255, 0]
+            [255, 0, 0],
+            [255, 255, 0],
         ]
         return colors[idx]
 
@@ -50,7 +51,17 @@ class MapInfo():
 
         self.__logger.debug(f"Checking if {x} {y} position is occupied -> {x_idx} {y_idx}")
 
-        return self.__current_map[x_idx][y_idx]
+        xs_to_search = range(max(0, x_idx - DIGITAL_EPS), min(x_idx + DIGITAL_EPS +1, self.__current_map_width))
+        ys_to_search = range(max(0, y_idx - DIGITAL_EPS), min(y_idx + DIGITAL_EPS +1, self.__current_map_height))
+
+        max_prob = -1
+
+        for x_eps in xs_to_search:
+            for y_eps in ys_to_search:
+                if self.__current_map[x_eps][y_eps] > max_prob:
+                    max_prob = self.__current_map[x_eps][y_eps]
+        
+        return max_prob
     
     def add_item_position_info(self, item_label, x, y):
         
@@ -83,14 +94,15 @@ class MapInfo():
                 self.__logger.info(f"Removing {overlapping_position} as a duplicate")
                 self.__known_items[item_label].remove(overlapping_position)
 
+        obj_matrix = numpy.zeros((self.__current_map_height, self.__current_map_width, 3), dtype="uint8")
 
-        obj_matrix = numpy.zeros((self.__current_map_width, self.__current_map_height, 3), dtype="uint8")
+        for i in range(self.__current_map_height):
+            for j in range (self.__current_map_width):
+                obj_matrix[i][j] = self.__item_idx_to_color(obj_map[j][i])
 
-        for i in range(self.__current_map_width):
-            for j in range (self.__current_map_height):
-                obj_matrix[i][j] = self.__item_idx_to_color(obj_map[i][j])
 
         rgb_color_array = numpy.reshape(obj_matrix, 3 * self.__current_map_width * self.__current_map_height)
+
         return rgb_color_array
 
 

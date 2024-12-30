@@ -133,7 +133,7 @@ class RobotController:
                 
                 for range_point in item_range_data:
                     item_x, item_y = pol2cart(range_point, angle_point, current_pose, current_orientation)
-                    
+                    self.__logger.debug(f"Position estimation for {item["label"]} is {item_x} {item_y}")
                     angle_point += angle_between_points
                     
                     occupied_prob = self.__map_info.get_prob_is_xy_occupied(item_x, item_y)
@@ -186,7 +186,7 @@ class RobotController:
         rclpy.init(args=None)
         
         self.__logger = logging.getLogger(__name__)
-
+        self.__logger.setLevel(logging.DEBUG)
         self.__target_twist = Twist()
 
         self.__node = rclpy.create_node('robot')
