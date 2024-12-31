@@ -13,7 +13,7 @@ def generate_launch_description():
     robot_description_path = os.path.join(package_dir, 'resource', 'robot_webots.urdf')
     
     webots = WebotsLauncher(
-        world=os.path.join(package_dir, 'worlds', 'lidar_world.wbt'),
+        world=os.path.join(package_dir, 'worlds', 'apartment.wbt'),
         ros2_supervisor=False
     )
 

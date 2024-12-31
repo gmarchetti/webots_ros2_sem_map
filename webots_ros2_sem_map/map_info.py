@@ -2,7 +2,7 @@ import numpy
 import logging
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
-DIGITAL_EPS = 1
+DIGITAL_EPS = 2
 
 class MapInfo():
     

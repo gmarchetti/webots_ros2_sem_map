@@ -9,7 +9,7 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/project
 WorldInfo {
 }
 Viewpoint {
-  orientation 0.44663415718733684 -0.22834394885132298 -0.8650878398501172 3.974424383224786
+  orientation 0.4466332093556815 -0.22834329300980805 -0.8650885023152722 3.9744590233456045
   position 12.836849146402333 -20.283659471258268 17.6781906982342
   followType "None"
 }
@@ -95,7 +95,7 @@ Robot {
         mass 0.01
       }
     }
-    DEF wheel_joint HingeJoint {
+    DEF wheel_joint_l HingeJoint {
       jointParameters HingeJointParameters {
         position 5.184067726082308
         anchor -0.5 0 -0.35
@@ -129,10 +129,10 @@ Robot {
         }
       }
     }
-    DEF wheel_joint HingeJoint {
+    DEF wheel_joint_r HingeJoint {
       jointParameters HingeJointParameters {
         position -5.183968885302215
-        anchor 0.5 0 -0.35
+        anchor 0.5 0 -0.4
       }
       device [
         RotationalMotor {
@@ -140,8 +140,8 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.5 2.42861286636753e-17 -0.3
-        rotation -0.45965146961597936 -0.7573083176496329 -0.4639015396596058 4.429068615578198
+        translation 0.5 -0.044542582925113844 -0.3272852843654305
+        rotation -0.45965146961597936 -0.757308317649633 -0.4639015396596058 4.429068615578198
         children [
           DEF shape_wheel Shape {
             appearance PBRAppearance {
@@ -158,6 +158,7 @@ Robot {
         name "motor_r1_solid"
         boundingObject USE shape_wheel
         physics USE wheel_physics
+        locked TRUE
       }
     }
     Lidar {
