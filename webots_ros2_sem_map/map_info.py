@@ -2,7 +2,7 @@ import numpy
 import logging
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
-DIGITAL_EPS = 2
+DIGITAL_EPS = 1
 
 class MapInfo():
     
@@ -17,6 +17,7 @@ class MapInfo():
 
     def __init__(self):
         self.__logger = logging.getLogger(__name__)
+        self.__logger.setLevel(logging.DEBUG)
 
         self.__current_map = None
         self.__current_map_width = 0
@@ -28,24 +29,18 @@ class MapInfo():
         self.__known_items = {}
 
     def process_new_map_message(self, msg: OccupancyGrid):
-        self.__current_map_width = msg.info.width
-        self.__current_map_height = msg.info.height
         
+        if msg.info.width != self.__current_map_width or msg.info.height != self.__current_map_height:
+            self.__current_map_width = msg.info.width
+            self.__current_map_height = msg.info.height
+            self.__current_map_resolution = msg.info.resolution
+            self.__current_map_x_origin = msg.info.origin.position.x
+            self.__current_map_y_origin = msg.info.origin.position.y
+            self.__x_pos_bins = [ self.__current_map_x_origin + i * self.__current_map_resolution for i in range(self.__current_map_width - 1 )]
+            self.__y_pos_bins = [ self.__current_map_y_origin + i * self.__current_map_resolution for i in range(self.__current_map_height - 1)]
+
         self.__current_map = numpy.reshape(msg.data, (self.__current_map_width, self.__current_map_height))
         
-        self.__current_map_resolution = msg.info.resolution
-        self.__current_map_x_origin = msg.info.origin.position.x
-        self.__current_map_y_origin = msg.info.origin.position.y
-
-        self.__x_pos_bins = [ self.__current_map_x_origin + i * self.__current_map_resolution for i in range(self.__current_map_width - 1 )]
-        self.__y_pos_bins = [ self.__current_map_y_origin + i * self.__current_map_resolution for i in range(self.__current_map_height - 1)]
-
-        # for x in range(self.__current_map_width):
-        #     for y in range(self.__current_map_height):
-        #         if self.__current_map[x][y] > 0:
-        #             converted_x = x*self.__current_map_resolution + self.__current_map_x_origin
-        #             converted_y = y*self.__current_map_resolution + self.__current_map_y_origin
-        #             self.__logger.info(f"Position {converted_x} {converted_y} is occupied")
 
     def __digitize_xy(self, x, y):
         return numpy.digitize(x, self.__x_pos_bins), numpy.digitize(y, self.__y_pos_bins)

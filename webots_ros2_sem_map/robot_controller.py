@@ -48,25 +48,34 @@ def prob_to_color(prob: int):
         # return 0xED671F 
         return [237, 103, 31]
 
-def pol2cart(rho, phi, current_position=[0,0,0], current_orientation=[0,0,0]):
-
-    rel_x = rho * np.cos(phi)
-    rel_y = rho * np.sin(phi)
-
-    x_sign, y_sign = 1, 1
-    
-    if np.cos(current_orientation[2]) < 0:
-        x_sign = -1
-
-    if np.sin(current_orientation[2]) < 0:
-        y_sign = -1
-
-    abs_x =  current_position[0] + (x_sign *  rel_x)
-    abs_y = current_position[1] + (y_sign * rel_y)
-    return abs_x, abs_y
 
 class RobotController:
         
+    def __pol2cart(self, rho, phi, current_position=[0,0,0], current_orientation=[0,0,0]):
+
+        rel_x = rho * np.sin(-phi + current_orientation[2])
+        rel_y = rho * np.cos(-phi + current_orientation[2])
+
+        self.__logger.debug(f"Polar coordinates {rho} {-phi + current_orientation[2]}")
+        self.__logger.debug(f"XY Correction for polar coordinates {rel_x} {rel_y}")
+
+        # x_sign, y_sign = 1, 1
+        
+        # if np.cos(current_orientation[2]) < 0:
+        #     x_sign = -1
+
+        # if np.sin(current_orientation[2]) < 0:
+        #     y_sign = -1
+
+        self.__logger.debug(f"Base XY {current_position[0]} {current_position[1]}")
+
+        abs_x = current_position[0] - rel_x
+        abs_y = current_position[1] + rel_y
+
+        self.__logger.debug(f"Corrected XY {abs_x} {abs_y}")
+
+        return abs_x, abs_y
+    
     def __gps_to_odom(self, message : PointStamped):
         # self.__logger.debug(message)
         time_stamp = message.header.stamp
@@ -146,7 +155,7 @@ class RobotController:
                 for range_point in item_range_data:
                     self.__logger.debug(f"Relative Polar Coordinates for {item["label"]}: {range_point + LIDAR_DISTANCE_FROM_CENTER} {angle_point}")
                     
-                    item_x, item_y = pol2cart(range_point + LIDAR_DISTANCE_FROM_CENTER, angle_point, current_pose, current_orientation)
+                    item_x, item_y = self.__pol2cart(range_point + LIDAR_DISTANCE_FROM_CENTER, angle_point, current_pose, current_orientation)
                     self.__logger.debug(f"Position estimation for {item["label"]} is {item_x} {item_y}")
                     
                     angle_point += angle_between_points
