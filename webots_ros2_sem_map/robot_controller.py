@@ -29,10 +29,9 @@ from .camera_img_handler import CameraImgHandler
 import logging
 logging.basicConfig(level=logging.INFO)
 
-HALF_DISTANCE_BETWEEN_WHEELS = 0.45
-LIDAR_DISTANCE_FROM_CENTER = 0.4
-WHEEL_RADIUS = 0.25
-OBJ_MAP_SIZE = 270
+HALF_DISTANCE_BETWEEN_WHEELS = 0.2
+LIDAR_DISTANCE_FROM_CENTER = 0.2
+WHEEL_RADIUS = 0.1
 
 def prob_to_color(prob: int):
     #RGB
@@ -221,33 +220,33 @@ class RobotController:
         self.__r1_motor.setVelocity(0.0)
 
         # Sensors
-        # self.__lidar = self.__robot.getDevice("lidar_sensor") 
-        # self.__camera = self.__robot.getDevice("camera")        
-        # self.__imu = self.__robot.getDevice("imu")
-        # self.__gps = self.__robot.getDevice("gps")
-        # self.__display = self.__robot.getDevice("display")
-        # self.__obj_display = self.__robot.getDevice("obj_display")
+        self.__lidar = self.__robot.getDevice("lidar_sensor") 
+        self.__camera = self.__robot.getDevice("camera")        
+        self.__imu = self.__robot.getDevice("imu")
+        self.__gps = self.__robot.getDevice("gps")
+        self.__display = self.__robot.getDevice("display")
+        self.__obj_display = self.__robot.getDevice("obj_display")
 
-        # self.__camera.enable(time_step)
-        # self.__imu.enable(time_step)
-        # self.__gps.enable(time_step)
-        # self.__lidar.enable(time_step)
+        self.__camera.enable(time_step)
+        self.__imu.enable(time_step)
+        self.__gps.enable(time_step)
+        self.__lidar.enable(time_step)
         # self.__lidar.enablePointCloud()
 
-        # self.__img_handler = CameraImgHandler(self.__camera)
+        self.__img_handler = CameraImgHandler(self.__camera)
 
         # Ros2 TeleOp Control
         self.__node.create_subscription(Twist, 'cmd_vel', self.__cmd_vel_callback, 1)
-        # self.__node.create_subscription(Bool, 'save_img', self.__save_img_callback, 1)
-        # self.__node.create_subscription(Bool, 'parse_camera', self.__parse_current_camera, 1)
-        # self.__node.create_subscription(PointStamped, 'robot/gps', self.__gps_to_odom, 1)
-        # self.__node.create_subscription(OccupancyGrid, '/map', self.__read_map_message, 1)
+        self.__node.create_subscription(Bool, 'save_img', self.__save_img_callback, 1)
+        self.__node.create_subscription(Bool, 'parse_camera', self.__parse_current_camera, 1)
+        self.__node.create_subscription(PointStamped, 'robot/gps', self.__gps_to_odom, 1)
+        self.__node.create_subscription(OccupancyGrid, '/map', self.__read_map_message, 1)
 
-        # self.__odom_pub = self.__node.create_publisher(Odometry, "robot/odom", 1)
-        # self.__imu_pub = self.__node.create_publisher(Imu, "robot/imu", 1)
-        # self.__odom_tf_broadcaster = TransformBroadcaster(self.__node)
+        self.__odom_pub = self.__node.create_publisher(Odometry, "robot/odom", 1)
+        self.__imu_pub = self.__node.create_publisher(Imu, "robot/imu", 1)
+        self.__odom_tf_broadcaster = TransformBroadcaster(self.__node)
 
-        # self.__map_info = MapInfo()
+        self.__map_info = MapInfo()
 
     def __cmd_vel_callback(self, twist):
         self.__target_twist = twist

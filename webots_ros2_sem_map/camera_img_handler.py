@@ -49,14 +49,14 @@ class CameraImgHandler():
         img = self.__get_camera_array_as_image()
         
         self.__logger.info(f"Read img from camera")        
-        self.__logger.info(f"Camera fov: {self.__camera.getFov()}")
+        self.__logger.debug(f"Camera fov: {self.__camera.getFov()}")
         items_in_sight = self.parse_img(img)
 
         for item in items_in_sight:
             item_box = item["box"]
             angle_min, angle_max = self.__item_box_to_rad(item_box)
             item["angle_pos"] = [angle_min, angle_max]
-            self.__logger.info(f"{item["label"]} position in rads: {angle_min} - {angle_max}")
+            self.__logger.debug(f"{item["label"]} position in rads: {angle_min} - {angle_max}")
         
         return items_in_sight
             
@@ -71,7 +71,7 @@ class CameraImgHandler():
         outputs = self.__model(**inputs)
 
         target_sizes = torch.tensor([image.size[::-1]])
-        results = self.__processor.post_process_object_detection(outputs, target_sizes=target_sizes, threshold=0.2)[0]
+        results = self.__processor.post_process_object_detection(outputs, target_sizes=target_sizes, threshold=0.4)[0]
 
         items = []
 

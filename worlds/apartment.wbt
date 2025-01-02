@@ -29,8 +29,6 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/living_room_furniture/protos/Sofa.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/living_room_furniture/protos/Carpet.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/plants/protos/BunchOfSunFlowers.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/robots/gctronic/e-puck/protos/E-puck.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/robots/gctronic/e-puck/protos/E-puckGroundSensors.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/plants/protos/PottedTree.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/paintings/protos/PortraitPainting.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/paintings/protos/LandscapePainting.proto"
@@ -43,8 +41,8 @@ WorldInfo {
   basicTimeStep 16
 }
 Viewpoint {
-  orientation -0.41012124406079825 0.4767637474122059 0.7774939834644983 1.6717425029105402
-  position -2.2582723716590123 -4.689550504079356 3.117600706763534
+  orientation -0.3918554615750794 0.5959552007297619 0.7009184659836908 1.5069382658138577
+  position -4.262993362833827 -7.286777255036836 9.22426678744976
   exposure 0.5
 }
 TexturedBackground {
@@ -73,12 +71,77 @@ DEF FLOOR Solid {
   locked TRUE
 }
 Robot {
-  translation -1.69 -2.56 0.13
+  translation -2.2532 -1.62491 0.3
+  rotation 0 0 1 -2.881385307179586
   children [
-    HingeJoint {
+    Display {
+      name "obj_display"
+      width 640
+      height 640
+    }
+    Display {
+      width 640
+      height 640
+    }
+    DEF BodyShapeWithTransform Pose {
+      children [
+        DEF Body Shape {
+          appearance PBRAppearance {
+            baseColor 0.3 0.3 0.3
+            roughness 1
+            metalness 0
+          }
+          geometry Cylinder {
+            height 0.5
+            radius 0.2
+          }
+        }
+      ]
+    }
+    Solid {
+      translation 0 -0.25 -0.25
+      children [
+        Shape {
+          appearance Appearance {
+            material Material {
+            }
+          }
+          geometry DEF sphere Sphere {
+            radius 0.05
+          }
+        }
+      ]
+      name "rear support"
+      boundingObject USE sphere
+      physics Physics {
+        density -1
+        mass 0.01
+      }
+    }
+    Solid {
+      translation 0 0.25 -0.25
+      children [
+        Shape {
+          appearance Appearance {
+            material Material {
+            }
+          }
+          geometry DEF sphere Sphere {
+            radius 0.05
+          }
+        }
+      ]
+      name "front support"
+      boundingObject USE sphere
+      physics Physics {
+        density -1
+        mass 0.01
+      }
+    }
+    DEF wheel_joint_l HingeJoint {
       jointParameters HingeJointParameters {
-        axis 0 0 1
-        anchor -0.14 0 -0.07
+        position 5.184067726082308
+        anchor 0 0 -0.2
       }
       device [
         RotationalMotor {
@@ -86,27 +149,33 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation -0.16 0 -0.07
-        rotation 0 1 0 1.5708
+        translation -0.25 0 -0.2
+        rotation 0.45962221983921875 -0.7573441520333398 0.46387201943097417 4.4291140464425105
         children [
-          DEF wheel Shape {
+          DEF shape_wheel Shape {
             appearance PBRAppearance {
-              baseColor 0.4 0.4 1
+              baseColor 0.1 0.1 0.1
+              roughness 1
               metalness 0
             }
             geometry Cylinder {
-              height 0.01
-              radius 0.05
+              height 0.1
+              radius 0.1
             }
           }
         ]
-        name "wheel_l1"
+        name "motor_l1_solid"
+        boundingObject USE shape_wheel
+        physics DEF wheel_physics Physics {
+          density -1
+          mass 0.01
+        }
       }
     }
-    HingeJoint {
+    DEF wheel_joint_r HingeJoint {
       jointParameters HingeJointParameters {
-        axis 0 0 1
-        anchor 0 0 -0.07
+        position -5.183968885302215
+        anchor 0.25 0 -0.2
       }
       device [
         RotationalMotor {
@@ -114,35 +183,57 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.15 0 -0.07
-        rotation 0 1 0 1.5708
+        translation 0.25 0 -0.2
+        rotation -0.45965146961597936 -0.757308317649633 -0.4639015396596058 4.429068615578198
         children [
-          DEF wheel Shape {
+          DEF shape_wheel Shape {
             appearance PBRAppearance {
-              baseColor 0.4 0.4 1
+              baseColor 0.1 0.1 0.1
+              roughness 1
               metalness 0
             }
             geometry Cylinder {
-              height 0.01
-              radius 0.05
+              height 0.1
+              radius 0.1
             }
           }
         ]
-        name "wheel_r1"
-        boundingObject USE wheel
+        name "motor_r1_solid"
+        boundingObject USE shape_wheel
+        physics USE wheel_physics
+        locked TRUE
       }
     }
-    Shape {
-      appearance PBRAppearance {
-        baseColor 0.4 0.4 0.4
-        metalness 0.4
-      }
-      geometry Cylinder {
-        height 0.15
-        radius 0.14
-      }
+    Lidar {
+      translation 0 0.2 0.25
+      rotation 0 0 1 1.57
+      name "lidar_sensor"
+      horizontalResolution 720
+      fieldOfView 3.14
+      verticalFieldOfView 1.57
+      numberOfLayers 1
+      near 0.0001
+      minRange 0.0001
+      maxRange 20
+    }
+    InertialUnit {
+      translation 0 0 0.2
+      name "imu"
+    }
+    Camera {
+      translation 0 0.2 0.25
+      rotation 0 0 1 1.58
+      width 2048
+      height 2048
+    }
+    GPS {
     }
   ]
+  boundingObject USE BodyShapeWithTransform
+  physics Physics {
+    density -1
+    mass 0.01
+  }
   controller "<extern>"
 }
 DEF ROOF Solid {
@@ -277,10 +368,6 @@ FloorLight {
   pointLightIntensity 2
 }
 Fridge {
-  hidden position_0_0 -2.19743793632432e-05
-  hidden position_0_1 2.1974379458150777e-05
-  hidden rotation_1 0 0 -1 2.1974378191611376e-05
-  hidden rotation_2 0 0 1 2.1974378191611376e-05
   translation -0.52 -0.5 0
   rotation 0 0 1 -1.5707953071795862
   mainColor 0.6666666666666666 0 0
@@ -317,12 +404,6 @@ Cabinet {
   }
 }
 Cabinet {
-  hidden position_6_0 3.3624388902207703e-06
-  hidden translation_7 -7.025816061103064e-07 -1.1811107647474728e-12 0
-  hidden rotation_7 0 0 1 3.362383545100939e-06
-  hidden position_10_0 -3.3631885818508067e-06
-  hidden translation_11 -7.027382541764013e-07 1.1817213874110166e-12 0
-  hidden rotation_11 0 0 -1 3.3631759060274798e-06
   translation -1.31 -0.15 1.12
   rotation 0 0 1 -1.5707953071795862
   name "cabinet 2"
@@ -353,9 +434,6 @@ Cabinet {
   }
 }
 Cabinet {
-  hidden position_6_0 -3.362442056071254e-06
-  hidden translation_7 -7.02582267614765e-07 1.1811107647474728e-12 0
-  hidden rotation_7 0 0 -1 3.362383545100939e-06
   translation -2.19 -0.15 0
   rotation 0 0 1 -1.5707953071795862
   name "cabinet 3"
@@ -561,20 +639,6 @@ Can {
   translation -7.2069 -2.8744 0.6109656650333487
   rotation 1.0049229347803837e-16 1.1098081917259707e-17 1 1.32183
   name "can 4"
-}
-E-puck {
-  hidden position_0_0 76.5209154216468
-  hidden position_0_1 91.17463499187207
-  hidden linearVelocity_0 -0.05605373709545974 -0.0037780394292184593 -9.089080949317981e-09
-  hidden angularVelocity_0 6.56197635644867e-05 -0.0010560050496804738 0.0926770612057558
-  hidden rotation_1 0 1 0 1.1226917354917674
-  hidden rotation_2 0 1 0 3.2100406913578574
-  translation -7.434884571367392 -2.2583428871597624 0.5498680432935178
-  rotation 0.0011452486947438085 4.318189110429019e-05 0.99999934327016 -3.07353114222211
-  groundSensorsSlot [
-    E-puckGroundSensors {
-    }
-  ]
 }
 Cabinet {
   translation -3.4681 -6.4326 0
