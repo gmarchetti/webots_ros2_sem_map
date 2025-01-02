@@ -159,7 +159,7 @@ class RobotController:
                     occupied_prob = self.__map_info.get_prob_is_xy_occupied(item_x, item_y)
                     
                     if occupied_prob > 0:
-                        self.__logger.info(f"Grid has a {occupied_prob}, marking as {item["label"]}")
+                        self.__logger.debug(f"Grid has a {occupied_prob}, marking as {item["label"]}")
                         self.__map_info.add_item_position_info(item["label"], item_x, item_y)
             
         except AttributeError:
@@ -201,6 +201,9 @@ class RobotController:
         ir = self.__obj_display.imageNew(bytes(obj_color_array), Display.RGB, m_width, m_height)
         self.__obj_display.imagePaste(ir, 0, 0, False)
         self.__obj_display.imageDelete(ir)
+
+        self.__map_info.print_current_legend(self.__obj_display)
+        
 
     def init(self, webots_node, properties):
         rclpy.init(args=None)
