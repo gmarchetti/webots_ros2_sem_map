@@ -12,7 +12,7 @@ import rclpy
 import rclpy.time
 
 from tf2_ros import TransformBroadcaster, TransformStamped
-from math import sin, cos, pi
+from math import pi
 from std_msgs.msg import String
 from std_msgs.msg import Bool
 from nav_msgs.msg import Odometry, OccupancyGrid
@@ -59,14 +59,6 @@ class RobotController:
         self.__logger.debug(f"Polar coordinates {rho} {-phi + current_orientation[2]}")
         self.__logger.debug(f"XY Correction for polar coordinates {rel_x} {rel_y}")
 
-        # x_sign, y_sign = 1, 1
-        
-        # if np.cos(current_orientation[2]) < 0:
-        #     x_sign = -1
-
-        # if np.sin(current_orientation[2]) < 0:
-        #     y_sign = -1
-
         self.__logger.debug(f"Base XY {current_position[0]} {current_position[1]}")
 
         abs_x = current_position[0] - rel_x
@@ -109,6 +101,11 @@ class RobotController:
         pose = Pose()
         pose.position = gps_point
         odom.pose.pose = pose
+
+        gps_speed = self.__gps.getSpeedVector()
+        odom.twist.twist.linear.x = gps_speed[0]
+        odom.twist.twist.linear.y = gps_speed[1]
+        odom.twist.twist.linear.z = gps_speed[2]
 
         # publish the message
         self.__odom_pub.publish(odom)    

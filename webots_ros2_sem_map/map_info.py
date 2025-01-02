@@ -2,7 +2,7 @@ import numpy
 import logging
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
-DIGITAL_EPS = 1
+DIGITAL_EPS = 2
 
 class MapInfo():
     
@@ -40,7 +40,7 @@ class MapInfo():
             self.__y_pos_bins = [ self.__current_map_y_origin + i * self.__current_map_resolution for i in range(self.__current_map_height - 1)]
 
         self.__current_map = numpy.reshape(msg.data, (self.__current_map_width, self.__current_map_height))
-        
+        # self.__print_occupied_slots()
 
     def __digitize_xy(self, x, y):
         return numpy.digitize(x, self.__x_pos_bins), numpy.digitize(y, self.__y_pos_bins)
@@ -65,6 +65,13 @@ class MapInfo():
         
         return max_prob
     
+    def __print_occupied_slots(self):
+        for i in range(self.__current_map_width):
+            for j in range(self.__current_map_height):
+                if self.__current_map[i][j] > 0:
+                    self.__logger.debug(f"Position [{i}][{j}] is occupied")
+
+
     def add_item_position_info(self, item_label, x, y):
         
         self.__logger.info(f"Adding {item_label} in {x} {y} to list of known items")

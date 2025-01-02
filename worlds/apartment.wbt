@@ -215,6 +215,7 @@ Robot {
       near 0.0001
       minRange 0.0001
       maxRange 20
+      defaultFrequency 25
     }
     InertialUnit {
       translation 0 0 0.2
