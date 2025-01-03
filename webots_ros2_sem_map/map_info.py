@@ -17,7 +17,9 @@ class MapInfo():
         self.__logger.info(f"{item_label} is a new item, adding to known items list")
         self.__item2idx[item_label] = len(self.__known_items)
         self.__known_items[item_label] = [ [x,y, confidence] ]
-        self.__add_new_color()
+        
+        if len(self.__known_items) > len(self.__item_colors):
+            self.__add_new_color()
 
     def __init__(self):
         self.__logger = logging.getLogger(__name__)
@@ -32,7 +34,15 @@ class MapInfo():
         self.__item2idx = {"empty" : 0}
         self.__known_items = { "empty" : [] }
 
-        self.__item_colors = [[255, 255, 255],]
+        self.__item_colors = [
+            [131, 138, 132],
+            [145, 30, 180],
+            [70, 240, 240],
+            [210, 245, 60],
+            [0, 128, 128],
+            [170, 110, 40],
+            [0, 0, 128],            
+            ]
     
     def draw_current_pose(self, display: Display, current_pose : list):
         x, y = self.__digitize_xy(current_pose[0], current_pose[1])
