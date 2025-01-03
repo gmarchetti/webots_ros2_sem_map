@@ -89,7 +89,7 @@ class MapInfo():
             self.__current_map_resolution = msg.info.resolution
             self.__current_map_x_origin = msg.info.origin.position.x
             self.__current_map_y_origin = msg.info.origin.position.y
-            self.__x_pos_bins = [ self.__current_map_x_origin + i * self.__current_map_resolution for i in range(self.__current_map_width - 1 )]
+            self.__x_pos_bins = [ self.__current_map_x_origin + i * self.__current_map_resolution for i in range(self.__current_map_width - 1, -1, -1 )]
             self.__y_pos_bins = [ self.__current_map_y_origin + i * self.__current_map_resolution for i in range(self.__current_map_height - 1)]
 
         self.__current_map = numpy.reshape(msg.data, (self.__current_map_width, self.__current_map_height))
