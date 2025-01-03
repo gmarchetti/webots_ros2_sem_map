@@ -160,7 +160,7 @@ class RobotController:
                     
                     if occupied_prob > 0:
                         self.__logger.debug(f"Grid has a {occupied_prob}, marking as {item["label"]}")
-                        self.__map_info.add_item_position_info(item["label"], item_x, item_y)
+                        self.__map_info.add_item_position_info(item["label"], item_x, item_y, item["confidence"])
             
         except AttributeError:
             self.__logger.error("An error occurred due to missing methods in the camera object.")
@@ -187,15 +187,15 @@ class RobotController:
 
         m_data = message.data
         
-        m_color_matrix = np.array([prob_to_color(point) for point in m_data], dtype=np.uint8)
-        m_color_array = np.reshape(m_color_matrix, m_height*m_width*3)
+        # m_color_matrix = np.array([prob_to_color(point) for point in m_data], dtype=np.uint8)
+        # m_color_array = np.reshape(m_color_matrix, m_height*m_width*3)
 
         self.__map_info.process_new_map_message(message)
 
         self.__logger.info(f"Received map data: {m_height}h x {m_width}w {len(m_data)} items")
-        ir = self.__display.imageNew(bytes(m_color_array), Display.RGB, m_width, m_height)
-        self.__display.imagePaste(ir, 0, 0, False)
-        self.__display.imageDelete(ir)
+        # ir = self.__display.imageNew(bytes(m_color_array), Display.RGB, m_width, m_height)
+        # self.__display.imagePaste(ir, 0, 0, False)
+        # self.__display.imageDelete(ir)
 
         obj_color_array = self.__map_info.get_obj_map_for_display()
         ir = self.__obj_display.imageNew(bytes(obj_color_array), Display.RGB, m_width, m_height)

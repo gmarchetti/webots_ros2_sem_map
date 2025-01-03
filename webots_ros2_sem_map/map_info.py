@@ -13,10 +13,10 @@ class MapInfo():
         #RGB        
         return self.__item_colors[idx]
 
-    def __add_new_item(self, item_label, x, y):
+    def __add_new_item(self, item_label, x, y, confidence):
         self.__logger.info(f"{item_label} is a new item, adding to known items list")
         self.__item2idx[item_label] = len(self.__known_items)
-        self.__known_items[item_label] = [ [x,y] ]
+        self.__known_items[item_label] = [ [x,y, confidence] ]
         self.__add_new_color()
 
     def __init__(self):
@@ -100,7 +100,7 @@ class MapInfo():
 
     def get_prob_is_xy_occupied(self, x, y):
         if self.__current_map is None:
-            return 100
+            return -1
 
         x_idx, y_idx = self.__digitize_xy(x, y)
 
@@ -117,26 +117,20 @@ class MapInfo():
                     max_prob = self.__current_map[x_eps][y_eps]
         
         return max_prob
-    
-    def __print_occupied_slots(self):
-        for i in range(self.__current_map_width):
-            for j in range(self.__current_map_height):
-                if self.__current_map[i][j] > 0:
-                    self.__logger.debug(f"Position [{i}][{j}] is occupied")
 
-
-    def add_item_position_info(self, item_label, x, y):
+    def add_item_position_info(self, item_label, x, y, confidence):
         
-        self.__logger.debug(f"Adding {item_label} in {x} {y} to list of known items")
+        self.__logger.debug(f"Adding {item_label} in {x} {y} to list of known items with {confidence} confidence")
         
         if item_label in self.__known_items.keys():
-            self.__known_items[item_label].append([x, y])
+            self.__known_items[item_label].append([x, y, confidence])
         else:
-            self.__add_new_item(item_label, x, y)
+            self.__add_new_item(item_label, x, y, confidence)
             
 
     def get_obj_map_for_display(self):
         obj_map = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="int")
+        highest_prob = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="int")
 
         for item_label in self.__known_items.keys():
             item_positions = self.__known_items[item_label]
@@ -145,9 +139,10 @@ class MapInfo():
 
             for position in item_positions:
                 item_x, item_y = self.__digitize_xy(position[0], position[1])
-                if obj_map[item_x][item_y] == 0:
+                if highest_prob[item_x][item_y] < position[2]:
                     self.__logger.debug(f"Marking pos {item_x} {item_y} as occupied")
                     obj_map[item_x][item_y] = self.__item2idx[item_label]
+                    highest_prob[item_x][item_y] = position[2]
                 else:
                     self.__logger.debug(f"Marking pos {item_x} {item_y} as duplicate")
                     item_pos_to_remove.append(position)
