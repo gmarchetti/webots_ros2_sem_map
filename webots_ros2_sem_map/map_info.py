@@ -21,7 +21,7 @@ class MapInfo():
 
     def __init__(self):
         self.__logger = logging.getLogger(__name__)
-        self.__logger.setLevel(logging.DEBUG)
+        self.__logger.setLevel(logging.INFO)
 
         self.__current_map = None
         self.__current_map_width = 0

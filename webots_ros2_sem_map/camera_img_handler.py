@@ -6,6 +6,8 @@ from controller import Camera
 from transformers import DetrImageProcessor, DetrForObjectDetection
 from PIL import Image
 
+Y_HEIGHT_FILTER = 20 #pixels from center of camera vertical fov to consider items
+
 class CameraImgHandler():
 
     def __get_camera_array_as_image(self) -> Image:
@@ -24,7 +26,10 @@ class CameraImgHandler():
         self.__processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50", revision="no_timm")
         self.__model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50", revision="no_timm")
         self.__logger = logging.getLogger(__name__)
+        self.__logger.setLevel(logging.INFO)
+
         self.__camera = camera
+        self.__camera_height = camera.getHeight()
 
     def save_camera_to_file(self):
         img = self.__get_camera_array_as_image()
@@ -85,12 +90,15 @@ class CameraImgHandler():
                 "box" : box
             }
 
-            items.append(item)
+            if box[1] < (self.__camera_height/2 + Y_HEIGHT_FILTER) and box[3] > (self.__camera_height/2 - Y_HEIGHT_FILTER ):
+                items.append(item)
+            else:
+                self.__logger.debug(f"Item {label} out of sight from lidar, disconsidering (y_top:{box[1]}, y_bottom:{box[3]})")
         
         self.__logger.info(f"Possibly found {len(items)} items")
 
         for found_item in items:
-            self.__logger.info(
+            self.__logger.debug(
                 f"Detected {found_item["label"]} with confidence {found_item["confidence"]} at location {found_item["box"]}"
             )
         
