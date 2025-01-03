@@ -190,12 +190,13 @@ class RobotController:
         # m_color_matrix = np.array([prob_to_color(point) for point in m_data], dtype=np.uint8)
         # m_color_array = np.reshape(m_color_matrix, m_height*m_width*3)
 
-        self.__map_info.process_new_map_message(message)
+        self.__logger.debug(f"Received map data: {m_height}h x {m_width}w {len(m_data)} items")
 
-        self.__logger.info(f"Received map data: {m_height}h x {m_width}w {len(m_data)} items")
         # ir = self.__display.imageNew(bytes(m_color_array), Display.RGB, m_width, m_height)
         # self.__display.imagePaste(ir, 0, 0, False)
         # self.__display.imageDelete(ir)
+
+        self.__map_info.process_new_map_message(message)
 
         obj_color_array = self.__map_info.get_obj_map_for_display()
         ir = self.__obj_display.imageNew(bytes(obj_color_array), Display.RGB, m_width, m_height)
@@ -219,7 +220,7 @@ class RobotController:
         self.__robot = webots_node.robot
 
         # get the time step of the current world.
-        time_step = 32
+        time_step = 100
 
         # Motors
         self.__l1_motor = self.__robot.getDevice("motor_l1")
@@ -236,7 +237,7 @@ class RobotController:
         self.__camera = self.__robot.getDevice("camera")        
         self.__imu = self.__robot.getDevice("imu")
         self.__gps = self.__robot.getDevice("gps")
-        self.__display = self.__robot.getDevice("display")
+
         self.__obj_display = self.__robot.getDevice("obj_display")
 
         self.__camera.enable(time_step)

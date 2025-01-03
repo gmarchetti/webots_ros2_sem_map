@@ -33,6 +33,7 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/paintings/protos/PortraitPainting.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/paintings/protos/LandscapePainting.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/television/protos/Television.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/apartment_structure/protos/GenericDoorAppearance.proto"
 
 WorldInfo {
   info [
@@ -41,8 +42,8 @@ WorldInfo {
   basicTimeStep 16
 }
 Viewpoint {
-  orientation -0.3918554615750794 0.5959552007297619 0.7009184659836908 1.5069382658138577
-  position -4.262993362833827 -7.286777255036836 9.22426678744976
+  orientation 0.4964564215166037 0.498491806634211 -0.7106595107739632 1.9020320479703121
+  position -4.123736034130772 3.316810443688825 21.476128173951132
   exposure 0.5
 }
 TexturedBackground {
@@ -76,10 +77,6 @@ Robot {
   children [
     Display {
       name "obj_display"
-      width 640
-      height 640
-    }
-    Display {
       width 640
       height 640
     }
@@ -295,6 +292,9 @@ Door {
   name "door 1"
   size 0.3 1 2.4
   canBeOpen FALSE
+  doorAppearance GenericDoorAppearance {
+    colorOverride 0.5 0.4 0.3
+  }
   frameAppearance PaintedWood {
     colorOverride 0.13333333333333333 0.13333333333333333 0.13333333333333333
   }
@@ -335,6 +335,9 @@ Door {
   name "door 2"
   size 0.3 1 2.4
   canBeOpen FALSE
+  doorAppearance GenericDoorAppearance {
+    colorOverride 0.5 0.4 0.3
+  }
   frameAppearance PaintedWood {
     colorOverride 0.13333333333333333 0.13333333333333333 0.13333333333333333
   }
