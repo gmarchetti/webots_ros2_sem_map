@@ -4,6 +4,7 @@ from controller import Display
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
 DIGITAL_EPS = 2
+EXTRA_PIXELS = 1
 
 class MapInfo():
     def __add_new_color(self):
@@ -47,7 +48,7 @@ class MapInfo():
     def draw_current_pose(self, display: Display, current_pose : list):
         x, y = self.__digitize_xy(current_pose[0], current_pose[1])
         display.setColor(0xFF0000)
-        display.fillOval(x, y, 3, 3)
+        display.fillOval(x * (1 + EXTRA_PIXELS), y * (1 + EXTRA_PIXELS), 3, 3)
 
     def draw_current_legend(self, display: Display):
         frame_size = 20
@@ -143,7 +144,7 @@ class MapInfo():
             self.__add_new_item(item_label, x, y, confidence)
             
 
-    def get_obj_map_for_display(self):
+    def draw_obj_map_for_display(self, display : Display):
         obj_map = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="int")
         highest_prob = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="int")
 
@@ -167,15 +168,19 @@ class MapInfo():
                 self.__logger.debug(f"Removing {overlapping_position} as a duplicate")
                 self.__known_items[item_label].remove(overlapping_position)
 
-        obj_matrix = numpy.zeros((self.__current_map_height, self.__current_map_width, 3), dtype="uint8")
+        obj_matrix = numpy.zeros((self.__current_map_height * (1 + EXTRA_PIXELS), self.__current_map_width * (1 + EXTRA_PIXELS), 3), dtype="uint8")
 
         for i in range(self.__current_map_height):
             for j in range (self.__current_map_width):
-                obj_matrix[i][j] = self.__item_idx_to_color(obj_map[j][i])
+                # 0 - 0 2
+                obj_matrix[i * (1 + EXTRA_PIXELS): (i + 1) * (1 + EXTRA_PIXELS), j * (1 + EXTRA_PIXELS) : (j + 1) * (1 + EXTRA_PIXELS)] = self.__item_idx_to_color(obj_map[j][i])
 
 
-        rgb_color_array = numpy.reshape(obj_matrix, 3 * self.__current_map_width * self.__current_map_height)
+        rgb_color_array = numpy.reshape(obj_matrix, 3 * self.__current_map_width * self.__current_map_height * (1 + EXTRA_PIXELS) * (1 + EXTRA_PIXELS))
 
-        return rgb_color_array
+        ir = display.imageNew(bytes(rgb_color_array), Display.RGB, self.__current_map_width * (1 + EXTRA_PIXELS), self.__current_map_height * (1 + EXTRA_PIXELS))
+        display.imagePaste(ir, 0, 0, False)
+        display.imageDelete(ir)
+
 
 

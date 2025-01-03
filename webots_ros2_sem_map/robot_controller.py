@@ -197,11 +197,7 @@ class RobotController:
         # self.__display.imageDelete(ir)
 
         self.__map_info.process_new_map_message(message)
-
-        obj_color_array = self.__map_info.get_obj_map_for_display()
-        ir = self.__obj_display.imageNew(bytes(obj_color_array), Display.RGB, m_width, m_height)
-        self.__obj_display.imagePaste(ir, 0, 0, False)
-        self.__obj_display.imageDelete(ir)
+        self.__map_info.draw_obj_map_for_display(self.__obj_display)        
 
         # draw current position on map
         current_pose = self.__gps.getValues()
