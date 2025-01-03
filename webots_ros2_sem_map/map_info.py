@@ -33,8 +33,13 @@ class MapInfo():
         self.__known_items = { "empty" : [] }
 
         self.__item_colors = [[255, 255, 255],]
+    
+    def draw_current_pose(self, display: Display, current_pose : list):
+        x, y = self.__digitize_xy(current_pose[0], current_pose[1])
+        display.setColor(0xFF0000)
+        display.fillOval(x, y, 3, 3)
 
-    def print_current_legend(self, display: Display):
+    def draw_current_legend(self, display: Display):
         frame_size = 20
         frame_border = 1
 

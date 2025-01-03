@@ -202,7 +202,10 @@ class RobotController:
         self.__obj_display.imagePaste(ir, 0, 0, False)
         self.__obj_display.imageDelete(ir)
 
-        self.__map_info.print_current_legend(self.__obj_display)
+        # draw current position on map
+        current_pose = self.__gps.getValues()
+        self.__map_info.draw_current_pose(self.__obj_display, current_pose)
+        self.__map_info.draw_current_legend(self.__obj_display)
         
 
     def init(self, webots_node, properties):
