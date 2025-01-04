@@ -156,11 +156,7 @@ class RobotController:
                     self.__logger.debug(f"Position estimation for {item["label"]} is {item_x} {item_y}")
                     
                     angle_point += angle_between_points
-                    occupied_prob = self.__map_info.get_prob_is_xy_occupied(item_x, item_y)
-                    
-                    if occupied_prob > 0:
-                        self.__logger.debug(f"Grid has a {occupied_prob}, marking as {item["label"]}")
-                        self.__map_info.add_item_position_info(item["label"], item_x, item_y, item["confidence"])
+                    self.__map_info.add_item_position_info(item["label"], item_x, item_y, item["confidence"])
             
         except AttributeError:
             self.__logger.error("An error occurred due to missing methods in the camera object.")
@@ -216,7 +212,7 @@ class RobotController:
         self.__robot = webots_node.robot
 
         # get the time step of the current world.
-        time_step = 100
+        time_step = 32
 
         # Motors
         self.__l1_motor = self.__robot.getDevice("motor_l1")

@@ -1,9 +1,10 @@
 import numpy
 import logging
+import operator
 from controller import Display
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
-DIGITAL_EPS = 2
+DIGITAL_EPS = 10
 EXTRA_PIXELS = 1
 
 class MapInfo():
@@ -14,10 +15,10 @@ class MapInfo():
         #RGB        
         return self.__item_colors[idx]
 
-    def __add_new_item(self, item_label, x, y, confidence):
+    def __add_new_item(self, item_label):
         self.__logger.info(f"{item_label} is a new item, adding to known items list")
         self.__item2idx[item_label] = len(self.__known_items)
-        self.__known_items[item_label] = [ [x,y, confidence] ]
+        self.__known_items[item_label] = []
         
         if len(self.__known_items) > len(self.__item_colors):
             self.__add_new_color()
@@ -34,6 +35,9 @@ class MapInfo():
         self.__current_map_resolution = 0
         self.__item2idx = {"empty" : 0}
         self.__known_items = { "empty" : [] }
+
+        self.__obj_map = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="int")
+        self.__prob_map = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="float")
 
         self.__item_colors = [
             [131, 138, 132],
@@ -57,20 +61,16 @@ class MapInfo():
         legend_height = (frame_size + 2*frame_border)*len(self.__known_items)
         legend_width = frame_size + 2*frame_border + 100
         legend_matrix = numpy.zeros((legend_height, legend_width, 3), dtype="uint8")
-        
-        self.__logger.debug(f"Legend dimensions: {legend_height} {legend_width}")
 
         legend_matrix[:,:] = [255, 255, 255]
         text_to_print = {}
 
         idx = 0
         for label in self.__known_items.keys():
-            self.__logger.debug(f"Color for {label} is {self.__item_idx_to_color(self.__item2idx[label])}")
             legend_item_top = idx * (frame_size + 2*frame_border)
             legend_item_bottom = legend_item_top + frame_size + 2*frame_border
             
             # item color
-            self.__logger.debug(f"Legend item borders {(legend_item_top)}:{legend_item_bottom}")
             legend_matrix[legend_item_top+frame_border:legend_item_bottom-frame_border, frame_border:frame_size] = self.__item_idx_to_color(self.__item2idx[label])
             
             # black frame
@@ -99,68 +99,78 @@ class MapInfo():
 
     def process_new_map_message(self, msg: OccupancyGrid):
         
-        if msg.info.width != self.__current_map_width or msg.info.height != self.__current_map_height:
+        if  msg.info.width != self.__current_map_width or \
+            msg.info.height != self.__current_map_height or\
+            msg.info.origin.position.x != self.__current_map_x_origin or \
+            msg.info.origin.position.y != self.__current_map_y_origin:
+
             self.__current_map_width = msg.info.width
             self.__current_map_height = msg.info.height
             self.__current_map_resolution = msg.info.resolution
             self.__current_map_x_origin = msg.info.origin.position.x
             self.__current_map_y_origin = msg.info.origin.position.y
+            
             self.__x_pos_bins = [ self.__current_map_x_origin + i * self.__current_map_resolution for i in range(self.__current_map_width - 1, -1, -1 )]
             self.__y_pos_bins = [ self.__current_map_y_origin + i * self.__current_map_resolution for i in range(self.__current_map_height - 1)]
+            
+            self.__build_obj_map()
+
 
         self.__current_map = numpy.reshape(msg.data, (self.__current_map_width, self.__current_map_height))
+
         # self.__print_occupied_slots()
 
     def __digitize_xy(self, x, y):
         return numpy.digitize(x, self.__x_pos_bins), numpy.digitize(y, self.__y_pos_bins)
 
-    def get_prob_is_xy_occupied(self, x, y):
-        if self.__current_map is None:
-            return -1
 
+    def __update_position_with_item(self, x, y, item_label, confidence):
         x_idx, y_idx = self.__digitize_xy(x, y)
+        current_tile_prob = self.__prob_map[x_idx][y_idx]
 
-        self.__logger.debug(f"Checking if {x} {y} position is occupied -> {x_idx} {y_idx}")
+        neighbors = self.__current_map[ max(x_idx - DIGITAL_EPS, 0) : x_idx + DIGITAL_EPS, max(y_idx - DIGITAL_EPS, 0) : y_idx + DIGITAL_EPS]
 
-        xs_to_search = range(max(0, x_idx - DIGITAL_EPS), min(x_idx + DIGITAL_EPS +1, self.__current_map_width))
-        ys_to_search = range(max(0, y_idx - DIGITAL_EPS), min(y_idx + DIGITAL_EPS +1, self.__current_map_height))
+        neighbors = numpy.reshape(neighbors, len(neighbors) * len(neighbors[0]))
 
-        max_prob = -1
+        highest_chance = max(neighbors)
 
-        for x_eps in xs_to_search:
-            for y_eps in ys_to_search:
-                if self.__current_map[x_eps][y_eps] > max_prob:
-                    max_prob = self.__current_map[x_eps][y_eps]
+        occupancy_prob = highest_chance/100
+
+        self.__logger.debug(f"Current tile {x_idx} {y_idx} has a prob of {occupancy_prob} of being occupied and of {current_tile_prob} being a {self.__obj_map[x_idx][y_idx]}")
+        # self.__logger.debug(f"Chances of neighbors being occupied:")
+        # self.__logger.debug(f"\n{neighbors}")
+        self.__logger.debug(f"Highest neighbor chance is: {highest_chance}")
+        if confidence*occupancy_prob > current_tile_prob:
+            self.__logger.debug(f"Tile has a higher probability of being occupied by {self.__item2idx[item_label]}, switching")
+            self.__prob_map[x_idx][y_idx] = confidence*occupancy_prob
+            self.__obj_map[x_idx][y_idx] = self.__item2idx[item_label]
+            return True
         
-        return max_prob
+        return False
 
     def add_item_position_info(self, item_label, x, y, confidence):
-        
-        self.__logger.debug(f"Adding {item_label} in {x} {y} to list of known items with {confidence} confidence")
-        
-        if item_label in self.__known_items.keys():
-            self.__known_items[item_label].append([x, y, confidence])
-        else:
-            self.__add_new_item(item_label, x, y, confidence)
-            
+        if item_label not in self.__known_items.keys():
+            self.__add_new_item(item_label)
 
-    def draw_obj_map_for_display(self, display : Display):
-        obj_map = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="int")
-        highest_prob = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="int")
+        if self.__current_map_width > 0:
+            if self.__update_position_with_item(x, y, item_label, confidence):
+                self.__logger.debug(f"Adding {item_label} in {x} {y} to list of known items with {confidence} confidence")
+                self.__known_items[item_label].append([x, y, confidence])
+    
+    def __build_obj_map(self):
+        self.__obj_map = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="int")
+        self.__prob_map = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="float")
 
         for item_label in self.__known_items.keys():
+            self.__logger.debug(f"Trying to relocate {item_label}")
             item_positions = self.__known_items[item_label]
             
             item_pos_to_remove = []
 
             for position in item_positions:
-                item_x, item_y = self.__digitize_xy(position[0], position[1])
-                if highest_prob[item_x][item_y] < position[2]:
-                    self.__logger.debug(f"Marking pos {item_x} {item_y} as occupied")
-                    obj_map[item_x][item_y] = self.__item2idx[item_label]
-                    highest_prob[item_x][item_y] = position[2]
-                else:
-                    self.__logger.debug(f"Marking pos {item_x} {item_y} as duplicate")
+                self.__logger.debug(f"Checking if position {position[0]} { position[1]} is {item_label} with confidence {position[2]}")
+                if not self.__update_position_with_item(position[0], position[1], item_label, position[2]):
+                    self.__logger.debug(f"Marking pos {position[0]} {position[1]} as duplicate")
                     item_pos_to_remove.append(position)
 
             # remove overlapping positions
@@ -168,12 +178,14 @@ class MapInfo():
                 self.__logger.debug(f"Removing {overlapping_position} as a duplicate")
                 self.__known_items[item_label].remove(overlapping_position)
 
+    def draw_obj_map_for_display(self, display : Display):
+
         obj_matrix = numpy.zeros((self.__current_map_height * (1 + EXTRA_PIXELS), self.__current_map_width * (1 + EXTRA_PIXELS), 3), dtype="uint8")
 
         for i in range(self.__current_map_height):
             for j in range (self.__current_map_width):
                 # 0 - 0 2
-                obj_matrix[i * (1 + EXTRA_PIXELS): (i + 1) * (1 + EXTRA_PIXELS), j * (1 + EXTRA_PIXELS) : (j + 1) * (1 + EXTRA_PIXELS)] = self.__item_idx_to_color(obj_map[j][i])
+                obj_matrix[i * (1 + EXTRA_PIXELS): (i + 1) * (1 + EXTRA_PIXELS), j * (1 + EXTRA_PIXELS) : (j + 1) * (1 + EXTRA_PIXELS)] = self.__item_idx_to_color(self.__obj_map[j][i])
 
 
         rgb_color_array = numpy.reshape(obj_matrix, 3 * self.__current_map_width * self.__current_map_height * (1 + EXTRA_PIXELS) * (1 + EXTRA_PIXELS))
