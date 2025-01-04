@@ -4,7 +4,7 @@ import operator
 from controller import Display
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
-DIGITAL_EPS = 10
+DIGITAL_EPS = 5
 EXTRA_PIXELS = 1
 
 class MapInfo():
