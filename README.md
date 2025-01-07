@@ -65,9 +65,9 @@ In the `robot_controller.py` script, the robot data is printed to the console. T
 - **Python (using conda):**
   - It is recommended to use Python version 3.11. You can manage your Python environment using conda.
   - Create a conda environment (e.g., `webots_env`) with Python 3.11:
-    ```bash
-    conda create -n webots_env python=3.11
-    ```
+  ```bash
+  conda create -n webots_env python=3.11
+  ```
   - Activate the environment:
   ```bash
     conda activate webots_env
@@ -79,20 +79,20 @@ In the `robot_controller.py` script, the robot data is printed to the console. T
 
 ## Project Structure
 
-.
-└── launch # ROS2 launch file for the package
-        └── robot_launch.py
+  .
+  └── launch # ROS2 launch file for the package
+      └── robot_launch.py
 
-└── resource # Contains .urdf files for the robot used in the simulation and configurations for the Slam Toolbox package
-    └── mapper_params_online_async.yaml
-    └── robot_webots.urdf
-    └── webots_ros2_sem_map
+  └── resource # Contains .urdf files for the robot used in the simulation and configurations for the Slam Toolbox package
+      └── mapper_params_online_async.yaml
+      └── robot_webots.urdf
+      └── webots_ros2_sem_map
 
-└── webots_ros2_sem_map # ROS2 Python scripts for the robot and sensor
-    └── __init__.py
-    └── camera_img_handler.py
-    └── map_info.py
-    └── robot_controller.py
+  └── webots_ros2_sem_map # ROS2 Python scripts for the robot and sensor
+      └── __init__.py
+      └── camera_img_handler.py
+      └── map_info.py
+      └── robot_controller.py
 
-└── worlds # Resource files used by the Webots simulator
-    └── apartment.wbt
+  └── worlds # Resource files used by the Webots simulator
+      └── apartment.wbt
