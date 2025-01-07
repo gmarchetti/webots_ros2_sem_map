@@ -4,65 +4,59 @@ This folder contains a Webots simulation project named "WebotsLidarSim" develope
 
 ## Description
 
-This Webots simulation showcases the use of a LiDAR and other sensors for perception and navigation tasks. The `main_controller.py` script handles the acquisition and processing of LiDAR data, allowing the robot to perceive its surroundings. The specific functionality and behavior of the robot depend on the implementation within the controller script. The current map built in the simulation contains some rooms and furniture, which can be used to test the robot's mapping and navigation capabilities.
+This project was implemented using the Jazzy Jalisco ROS2 release and the Webots 2023b release. It is recommend to use this specific version to run the project.
+
+Installation instructions for the Jazzy Jalisco can be found at: https://docs.ros.org/en/jazzy/Installation.html
+The Webots simulator can be downloaded and installed from: https://cyberbotics.com/#download
+
+This projects assumes that the default install paths are used for the Webots simulator
+
+The simulation showcases the use of a LiDAR and other sensors for perception and navigation tasks. The main controller of the robot is implemented in the `robot_controller.py` script. This script is responsible for initializing the devices that the simulated robot has, as well as creating the required ros Publisher and Subscribers required for it to function.
+
+## How-to build
+
+The build system used in this project is based on the colcon toolkit, so ensure that it is installed first:
+
+    sudo apt install python3-colcon-common-extensions
+
+All the next commands assume that the project files were extracted on the "src" folder of "ros2_ws", created during the steps of the Jazzy Jalisco tutorial, the paths should be adjusted
+if this is not your case:
+
+- Install all the dependencies of the project by running:
+
+        sudo rosdep init
+        rosdep update
+        rosdep install --from-paths src -y --ignore-src
+
+- Build the package:
+
+        colcon build --packages-select webots_ros2_sem_map
 
 ## Running the Simulation
 
-First, open the Webots application, navigate to the project folder, and open the `worlds` directory. Then, open the desired world file (e.g., `lidar_world.wbt`) to load the simulation environment. After loading the world, you can run the simulation by clicking the "Play" button in the Webots interface. However, this will not start the Python controller script; you need to run that separately.
+Once built, the project can be run by the following commands:
 
-To run the Python controller script, follow these steps:
+    source install/local_setup.bash
+    ros2 launch wall_following_robots robot_launch.py
 
-1. **Navigate to the controller directory:**
-
-   ```bash
-   cd controllers/main_controller
-   ```
-
-2. **Execute the Python controller script:**
-
-   ```bash
-   python main_controller.py
-   ```
-
-This will start the Webots simulation environment and start the `main_controller.py` script, which controls the behavior of the robot equipped with the LiDAR sensor.
+This should automatically launch the Webots installation and connect the controllers to the robots. Besides the Webots controller, the Slam Toolbox package is also started. This package is responsible for providing the /map messages with the occupancy data required for the semantic mapping of the environment.
 
 ### Controlling the bot
 
-By default the `main_controller.py` script allow the user to control the robot using the keyboard. The following keys can be used to control the robot:
+The robot is compatible with the Telop Twist Keyboard ros package and is declared as a dependency on the `package.xml` file. To run teleop, simply run
 
-- `W` : Move the robot forward
-- `S` : Move the robot backward
-- `A` : Turn the robot left
-- `D` : Turn the robot right
+    ros2 run teleop_twist_keyboard teleop_twist_keyboard
+
+on a new terminal and it should be able to control the robot with the keyboard.
 
 ### Robot data
 
-In the `main_controller.py` script, the robot data is printed to the console. This provides a simple example of how to access and process the data from the robot's sensors. The following sensors are used in the simulation:
+In the `robot_controller.py` script, the robot data is printed to the console. This provides a simple example of how to access and process the data from the robot's sensors. The following sensors are used in the simulation:
 
 - **LiDAR Sensor:** The LiDAR sensor provides distance measurements in the form of a 3D array.
 - **Camera Sensor:** The camera sensor provides RGB images of the environment, it is positioned in the front of the robot.
 - **GPS Sensor:** The GPS sensor provides the position of the robot in the environment.
 - **IMU Sensor:** The IMU sensor provides the orientation of the robot.
-
-### ROS2 Compatibility
-
-The `main_controller.py` script is also compatible with ROS2. If you have ROS2 installed on your system, you can enable the ROS2 functionality in the script. To do this, uncomment the following lines in the `main_controller.py` script:
-
-```python
-  # Uncomment the following code to run ROS2 nodes in parallel with the Webots controller.
-  # rclpy.init(args=None)
-
-  # ros2_publisher = ROS2Publisher()
-  # ros2_subscriber = ROS2Subscriber()
-
-  # try:
-  #     rclpy.spin(ros2_publisher)
-  # except KeyboardInterrupt:
-  #     ros2_publisher.destroy_node()
-  #     rclpy.shutdown()
-```
-
-The current implementation of the controller has two classes that can serve as examples for ROS2 publishers and subscribers. The `ROS2Publisher` class publishes a message to a topic, and the `ROS2Subscriber` class subscribes to a topic and prints the received message. You can modify these classes to suit your specific needs.
 
 ## Requirements
 
@@ -85,58 +79,20 @@ The current implementation of the controller has two classes that can serve as e
 
 ## Project Structure
 
-- **`controllers/main_controller`:** This folder contains the Python script (`main_controller.py`) responsible for controlling the robot and processing LiDAR data.
-- **`worlds`:** This folder contains the Webots world file defining the simulation environment, including the robot, LiDAR sensor, and other objects. In this folder it is also possible to find the textures used in the simulation.
+.
+└── launch # ROS2 launch file for the package
+        └── robot_launch.py
 
-## Important Note: Webots Path in `main_controller.py`
+└── resource # Contains .urdf files for the robot used in the simulation and configurations for the Slam Toolbox package
+    └── mapper_params_online_async.yaml
+    └── robot_webots.urdf
+    └── webots_ros2_sem_map
 
-**Please remember to modify line 13 in the `main_controller.py` file to reflect the correct installation path of Webots on your computer.** For example, if your Webots installation is located at `/usr/local/webots`, the line should look like this:
+└── webots_ros2_sem_map # ROS2 Python scripts for the robot and sensor
+    └── __init__.py
+    └── camera_img_handler.py
+    └── map_info.py
+    └── robot_controller.py
 
-```python
-# ... other code ... (Line 12)
-sys.path.append('[WEBOTS INSTALLATION FOLDER]/lib/controller/python') # Line 13 (Adjust this path)
-# ... rest of the code ...
-```
-
-**Adapt this path according to your specific Webots installation directory.**
-
-## ROS Error
-
-If you encounter an error related to ROS when running the simulation, you can disable ROS by following these steps:
-
-- Comment the import of the ROS package in the `main_controller.py` file:
-
-  ```python
-  import rclpy
-  from rclpy.node import Node
-  from std_msgs.msg import String
-  from geometry_msgs.msg import Pose
-  ```
-
-- Comment the ROS-related clases in the `main_controller.py` file:
-
-  ```python
-  class ROS2Subscriber(Node):
-    def __init__(self):
-        super().__init__("ros2_subscriber")
-        self.subscription = self.create_subscription(
-            String, "webots", self.listener_callback, 10
-        )
-
-    def listener_callback(self, msg):
-        self.get_logger().info(f'Received: "{msg.data}"')
-
-  class ROS2Publisher(Node):
-    def **init**(self):
-    super().**init**("ros2*publisher")
-    self.publisher* = self.create_publisher(String, "chatter", 10)
-    timer_period = 0.5
-    self.timer = self.create_timer(timer_period, self.timer_callback)
-
-        def timer_callback(self):
-            msg = String()
-            msg.data = "Hello Webots"
-
-            self.publisher_.publish(msg)
-            self.get_logger().info('Publishing: "%s"' % msg.data)
-  ```
+└── worlds # Resource files used by the Webots simulator
+    └── apartment.wbt
