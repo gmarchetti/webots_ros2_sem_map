@@ -80,6 +80,7 @@ In the `robot_controller.py` script, the robot data is printed to the console. T
 ## Project Structure
 
 This project folders is organized as follows:
+
     .
     └── launch # ROS2 launch file for the package
         └── robot_launch.py
