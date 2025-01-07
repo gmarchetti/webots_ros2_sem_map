@@ -10,6 +10,8 @@ import traceback
 import os
 import rclpy
 import rclpy.time
+import time
+
 
 from tf2_ros import TransformBroadcaster, TransformStamped
 from math import pi
@@ -122,6 +124,7 @@ class RobotController:
 
     def __parse_current_camera(self, message):
         try:
+            parse_camera_start_time = time.time()
             items_in_sight = self.__img_handler.parse_current_camera()
             self.__logger.debug(f"found these items in camera {items_in_sight}")
 
@@ -158,6 +161,8 @@ class RobotController:
                     angle_point += angle_between_points
                     self.__map_info.add_item_position_info(item["label"], item_x, item_y, item["confidence"])
             
+            parse_camera_stop_time = time.time()
+            self.__logger.info(f"---> Parsing camera took {parse_camera_stop_time - parse_camera_start_time}s")
         except AttributeError:
             self.__logger.error("An error occurred due to missing methods in the camera object.")
             traceback.print_exc()
@@ -182,19 +187,16 @@ class RobotController:
         m_width = m_info.width
 
         m_data = message.data
-        
-        # m_color_matrix = np.array([prob_to_color(point) for point in m_data], dtype=np.uint8)
-        # m_color_array = np.reshape(m_color_matrix, m_height*m_width*3)
 
         self.__logger.debug(f"Received map data: {m_height}h x {m_width}w {len(m_data)} items")
 
-        # ir = self.__display.imageNew(bytes(m_color_array), Display.RGB, m_width, m_height)
-        # self.__display.imagePaste(ir, 0, 0, False)
-        # self.__display.imageDelete(ir)
-
+        start_map_msg_time = time.time()
         self.__map_info.process_new_map_message(message)
+        stop_map_msg_time = time.time()
+        self.__logger.info(f"---> Processing map message took {stop_map_msg_time - start_map_msg_time}s")
         self.__map_info.draw_obj_map_for_display(self.__obj_display)        
-
+        stop_draw_map_time = time.time()
+        self.__logger.info(f"---> Drawing map message took {stop_draw_map_time - stop_map_msg_time}s")
         # draw current position on map
         current_pose = self.__gps.getValues()
         self.__map_info.draw_current_pose(self.__obj_display, current_pose)
