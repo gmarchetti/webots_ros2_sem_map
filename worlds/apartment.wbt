@@ -42,8 +42,8 @@ WorldInfo {
   basicTimeStep 16
 }
 Viewpoint {
-  orientation 0.4964564215166037 0.498491806634211 -0.7106595107739632 1.9020320479703121
-  position -4.123736034130772 3.316810443688825 21.476128173951132
+  orientation 0.5680463606817315 0.5590812661051484 -0.6039465787687719 2.0689823061186967
+  position -5.67930250004376 -2.141588139049439 22.727214562637453
   exposure 0.5
 }
 TexturedBackground {
@@ -211,7 +211,7 @@ Robot {
       numberOfLayers 1
       near 0.0001
       minRange 0.0001
-      maxRange 20
+      maxRange 10
       defaultFrequency 25
     }
     InertialUnit {
@@ -605,7 +605,7 @@ Table {
 Armchair {
   translation -5.8922 -3.8267 0
   rotation 0 0 1 2.30591
-  color 0.13333333333333333 0.13333333333333333 0.13333333333333333
+  color 0.5 0.133333 0.133333
 }
 Sofa {
   translation -7.0533 -0.8042 0
@@ -615,7 +615,7 @@ Sofa {
 Sofa {
   translation -8.9573 -2.4973 0
   name "sofa 2"
-  color 0.13333333333333333 0.13333333333333333 0.13333333333333333
+  color 0.5 0.133333 0.133333
 }
 Carpet {
   translation -7.1422 -2.5507 -0.0151
