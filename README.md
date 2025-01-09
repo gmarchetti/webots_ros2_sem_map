@@ -39,7 +39,19 @@ Once built, the project can be run by the following commands:
     source install/local_setup.bash
     ros2 launch wall_following_robots robot_launch.py
 
-This should automatically launch the Webots installation and connect the controllers to the robots. Besides the Webots controller, the Slam Toolbox package is also started. This package is responsible for providing the /map messages with the occupancy data required for the semantic mapping of the environment.
+This should automatically launch the Webots installation and connect the controllers to the robots.
+
+After Webots is running, in a new terminal launch the Slam Toolbox package, which should've been installed during the build process
+
+    ros2 launch slam_toolbox online_sync_launch.py
+
+This package is responsible for providing the `nav_msgs/OccupancyGrid` messages with the occupancy data required for the semantic mapping of the environment. It should be possible to use any other package that provides same message, as long as it sends through the `/map` topic
+
+Finally, start sending request for the robot to parse the current camera. This can be done by using the `ros2 topic pub` command line:
+
+    ros2 topic pub -r 0.2 /parse_camera std_msgs/msg/Bool "{data: true}"
+
+After these steps, it should be possible to see the identified object being rendered on the device display on the simulator.
 
 ### Controlling the bot
 
