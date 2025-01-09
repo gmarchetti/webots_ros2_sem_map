@@ -4,7 +4,7 @@ import operator
 from controller import Display
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
-DIGITAL_EPS = 5
+DIGITAL_EPS = 2
 EXTRA_PIXELS = 1
 
 class MapInfo():
@@ -33,20 +33,25 @@ class MapInfo():
         self.__current_map_x_origin = 0
         self.__current_map_y_origin = 0
         self.__current_map_resolution = 0
-        self.__item2idx = {"empty" : 0}
-        self.__known_items = { "empty" : [] }
+        self.__item2idx = {"unknown" : 0}
+        self.__known_items = { "unknown" : [] }
 
         self.__obj_map = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="int")
         self.__prob_map = numpy.zeros((self.__current_map_width, self.__current_map_height), dtype="float")
 
         self.__item_colors = [
-            [131, 138, 132],
+            [210, 210, 210],
+            [70, 200, 225], #Original: 70 240 240
+            [230, 25, 75],
             [145, 30, 180],
-            [70, 240, 240],
-            [210, 245, 60],
+            [0,0,0],
             [0, 128, 128],
+            [245, 130, 48],
+            [0, 0, 128],  
+            [128, 128, 128],
             [170, 110, 40],
-            [0, 0, 128],            
+            [210, 245, 60],
+            [240, 50, 230],
             ]
     
     def draw_current_pose(self, display: Display, current_pose : list):
@@ -91,7 +96,7 @@ class MapInfo():
         display.imagePaste(ir, 0, display.getHeight() - legend_height, True)
         display.imageDelete(ir)        
 
-        display.setFont(font="Arial", size=10, anti_aliasing=True)
+        display.setFont(font="Arial", size=12, anti_aliasing=False)
         display.setColor(0x000000)
         for text in text_to_print.keys():
             display.drawText(text, text_to_print[text][0], display.getHeight() - legend_height + text_to_print[text][1])
