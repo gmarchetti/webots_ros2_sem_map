@@ -76,15 +76,19 @@ class RobotController:
 
         gps_point = message.point
 
-        tf_odom = TransformStamped()
+        current_time = time.time()
 
-        tf_odom.header.stamp = time_stamp
+        tf_odom = TransformStamped()
+        
+        tf_odom.header.stamp.sec = int(current_time)
+        tf_odom.header.stamp.nanosec = int(current_time * 1e9)
         tf_odom.header.frame_id = "odom"
         tf_odom.child_frame_id = "base_link"
 
-        tf_odom.transform.translation.x = gps_point.x
-        tf_odom.transform.translation.y = gps_point.y
-        tf_odom.transform.translation.z = gps_point.z
+        gps_reading = self.__gps.getValues()
+        tf_odom.transform.translation.x = gps_reading[0]
+        tf_odom.transform.translation.y = gps_reading[1]
+        tf_odom.transform.translation.z = gps_reading[2]
         
         imu_reading = self.__imu.getQuaternion()
         tf_odom.transform.rotation.x = imu_reading[0]
@@ -93,24 +97,6 @@ class RobotController:
         tf_odom.transform.rotation.w = imu_reading[3]
 
         self.__odom_tf_broadcaster.sendTransform(tf_odom)
-
-        # next, we'll publish the odometry message over ROS
-        odom = Odometry()
-        odom.header.stamp = time_stamp
-        odom.header.frame_id = "odom"
-        odom.child_frame_id = "base_link"
-        # set the position
-        pose = Pose()
-        pose.position = gps_point
-        odom.pose.pose = pose
-
-        gps_speed = self.__gps.getSpeedVector()
-        odom.twist.twist.linear.x = gps_speed[0]
-        odom.twist.twist.linear.y = gps_speed[1]
-        odom.twist.twist.linear.z = gps_speed[2]
-
-        # publish the message
-        self.__odom_pub.publish(odom)    
 
     def __cam_angle_to_index(self, angle, num_points):
 
@@ -249,8 +235,6 @@ class RobotController:
         self.__node.create_subscription(PointStamped, 'robot/gps', self.__gps_to_odom, 1)
         self.__node.create_subscription(OccupancyGrid, '/map', self.__read_map_message, 1)
 
-        self.__odom_pub = self.__node.create_publisher(Odometry, "robot/odom", 1)
-        self.__imu_pub = self.__node.create_publisher(Imu, "robot/imu", 1)
         self.__odom_tf_broadcaster = TransformBroadcaster(self.__node)
 
         self.__map_info = MapInfo()
