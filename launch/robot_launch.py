@@ -124,11 +124,11 @@ def generate_launch_description():
                 on_exit=[launch.actions.EmitEvent(event=launch.events.Shutdown())],
             )
         ),
-        declare_autostart_cmd,
-        declare_use_lifecycle_manager,
-        declare_use_sim_time_argument,
-        declare_slam_params_file_cmd,
-        start_sync_slam_toolbox_node,
-        configure_event,
-        activate_event
+        # declare_autostart_cmd,
+        # declare_use_lifecycle_manager,
+        # declare_use_sim_time_argument,
+        # declare_slam_params_file_cmd,
+        # start_sync_slam_toolbox_node,
+        # configure_event,
+        # activate_event
     ])
